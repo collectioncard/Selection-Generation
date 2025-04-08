@@ -6,7 +6,26 @@
     <title>Selection Generation</title>
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+  <div id="control-buttons">
+    <div>
+      <button>b1</button>
+      <button>b2</button>
+      <button>b3</button>
+      <button>b4</button>
+      <button>b5</button>
+      <button>b6</button>
+    </div>
+  </div>
+  <div id="map"></div>
+  <div id="llm-chat">
+    <div>
+      <ul id="chat-history"></ul>
+      <form id="llm-chat-form" autocomplete="off">
+        <input type="text" id="llm-chat-input" />
+        <button type="submit" id="llm-chat-submit">Send</button>
+      </form>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
   </body>
 </html>

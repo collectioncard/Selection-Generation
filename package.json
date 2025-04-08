@@ -11,5 +11,10 @@
   "devDependencies": {
     "typescript": "~5.7.2",
     "vite": "^6.2.0"
+  },
+  "dependencies": {
+    "marked": "^15.0.8",
+    "openai": "^4.92.1",
+    "phaser": "^3.88.2"
   }
 }
