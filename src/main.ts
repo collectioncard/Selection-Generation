@@ -1,5 +1,6 @@
 import './style.css'
 import {createGame} from "./phaser/TinyTownScene.ts";
+import './modelChat/chatbox.ts';
 
 createGame(document.getElementById('map') as HTMLDivElement);
 
