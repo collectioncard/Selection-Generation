@@ -1,5 +1,5 @@
 import {ChatMessage} from "./modelChatTypes.ts";
-import {streamChatResponse} from "./apiConnector.ts";
+import {getChatResponse} from "./apiConnector.ts";
 
 const chatHistoryList: Element = document.querySelector('#chat-history')!;
 const chatInputField: HTMLInputElement = document.querySelector('#llm-chat-input')!;
@@ -21,7 +21,7 @@ document.querySelector('#llm-chat-form')!.addEventListener('submit', async funct
     let botResponseEntry: string;
     
     try {
-        botResponseEntry = await streamChatResponse(chatHistory);
+        botResponseEntry = await getChatResponse(chatHistory);
         addChatMessage({
             role: "assistant",
             content: botResponseEntry
