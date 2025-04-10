@@ -1,20 +1,18 @@
 import Phaser from 'phaser';
 
-import {houseGenerator} from "./featureGenerators/houseGenerator";
-import {completedSection, generatorInput} from "./featureGenerators/GeneratorInterface.ts";
+import { houseGenerator } from "./featureGenerators/houseGenerator";
+import { completedSection, generatorInput } from "./featureGenerators/GeneratorInterface.ts";
 
 class TinyTownScene extends Phaser.Scene {
     private readonly SCALE = 1;
-    private readonly CANVAS_WIDTH = 40;  //Size in tiles
-    private readonly CANVAS_HEIGHT = 25; // ^^^
+    private readonly CANVAS_WIDTH = 40;
+    private readonly CANVAS_HEIGHT = 25;
 
-    // selection box properties
-    private selectionBox!: Phaser.GameObjects.Graphics;
-    private selectionStart!: Phaser.Math.Vector2;
-    private selectionEnd!: Phaser.Math.Vector2;
-    private isSelecting: boolean = false;
-    private selectedTiles: { x: number; y: number }[] = [];
-    
+    private tilemap!: Phaser.Tilemaps.Tilemap;
+    private featureLayer!: Phaser.Tilemaps.TilemapLayer;
+    private grassLayer!: Phaser.Tilemaps.TilemapLayer;
+
+
     constructor() {
         super('TinyTown');
     }
@@ -27,6 +25,7 @@ class TinyTownScene extends Phaser.Scene {
     }
 
     create() {
+        // Create tilemap and layers
         const map = this.make.tilemap({
             tileWidth: 16,
             tileHeight: 16,
@@ -42,128 +41,139 @@ class TinyTownScene extends Phaser.Scene {
         const featureLayer = map.createBlankLayer('features-layer', tileSheet, 0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT)!;
         featureLayer.setScale(this.SCALE);
 
-        //fill the grass layer with 1 of the three options
+        this.tilemap = map;
+        this.featureLayer = featureLayer;
+        this.grassLayer = grassLayer;
+
+        // Fill grass layer with random tiles
         for (let y = 0; y < this.CANVAS_HEIGHT; y++) {
             for (let x = 0; x < this.CANVAS_WIDTH; x++) {
                 grassLayer.putTileAt(Phaser.Math.Between(0, 2), x, y);
             }
         }
-        
-        // -------------> DO STUFF HERE <----------------
-        this.selectionBox = this.add.graphics();
-        this.selectionBox.setDepth(100); 
-        
-        this.input.on('pointerdown', this.startSelection, this);
-        this.input.on('pointermove', this.updateSelection, this);
-        this.input.on('pointerup', this.endSelection, this);
 
-        //Feature generator demo -- Erase if you don't need this
-        // 1. Create a generatorInput obj with a 2D array the size of the feature you want. (min is 5x5 for most I think?)
+        // Feature generator demo
         const houseInput: generatorInput = {
             grid: new Array(5).fill(-1).map(() => new Array(5).fill(-1)),
             width: 5,
             height: 5
         };
-        
-        // 2. Pass it to the generator you want. House in this case.
-        const generatedData: completedSection = houseGenerator.generate(houseInput)
-        
-        // 3. Put that somewhere in the feature layer. 1,1 for this example.
+        const generatedData: completedSection = houseGenerator.generate(houseInput);
         featureLayer.putTilesAt(generatedData.grid, 1, 1);
-      
-        
-    }
 
-    startSelection(pointer: Phaser.Input.Pointer): void {
-        // Convert screen coordinates to tile coordinates
-        const x: number = Math.floor(pointer.x / (16 * this.SCALE));
-        const y: number = Math.floor(pointer.y / (16 * this.SCALE));
+        // === Selection Box Setup ===
+
+        let isDragging = false;
+        let startPoint = new Phaser.Math.Vector2();
+        let selectionRect = this.add.graphics();
+        selectionRect.lineStyle(3, 0xff0000, 1);
+        selectionRect.setDepth(10);
+
+        // Safe helper functions to ensure no null values
+        const safeWorldToTileX = (worldX: number) => this.tilemap.worldToTileX(worldX) ?? 0;
+        const safeWorldToTileY = (worldY: number) => this.tilemap.worldToTileY(worldY) ?? 0;
+        const safeTileToWorldX = (tileX: number) => this.tilemap.tileToWorldX(tileX) ?? 0;
+        const safeTileToWorldY = (tileY: number) => this.tilemap.tileToWorldY(tileY) ?? 0;
+
+        // Pointer down: start selection
+        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            isDragging = true;
+            startPoint.set(pointer.worldX, pointer.worldY);
+            selectionRect.clear();
+            selectionRect.lineStyle(3, 0xff0000, 1);
+        });
+
+        // Pointer move: update selection box
+        this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+            if (!isDragging) return;
+
+            // Snap to tile grid
+            const pointerTileX = safeTileToWorldX(safeWorldToTileX(pointer.worldX));
+            const pointerTileY = safeTileToWorldY(safeWorldToTileY(pointer.worldY));
+            const startTileX = safeTileToWorldX(safeWorldToTileX(startPoint.x));
+            const startTileY = safeTileToWorldY(safeWorldToTileY(startPoint.y));
+
+            const x = Math.min(startTileX, pointerTileX);
+            const y = Math.min(startTileY, pointerTileY);
+            const width = Math.abs(pointerTileX - startTileX) + this.tilemap.tileWidth;
+            const height = Math.abs(pointerTileY - startTileY) + this.tilemap.tileHeight;
+
+            selectionRect.clear();
+            selectionRect.lineStyle(3, 0xff0000, 1);
+            selectionRect.fillStyle(0xff0000, 0.1);
+            selectionRect.fillRect(x, y, width, height);
+
+            const dashSize = 4;
+            this.drawDottedRect(selectionRect, x, y, width, height, dashSize);
+        });
+
+        // Pointer up: finalize selection
+        this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+            isDragging = false;
         
-        // Only start selection if within map bounds
-        if (x >= 0 && x < this.CANVAS_WIDTH && y >= 0 && y < this.CANVAS_HEIGHT) {
-            this.isSelecting = true;
-            this.selectionStart = new Phaser.Math.Vector2(x, y);
-            this.selectionEnd = new Phaser.Math.Vector2(x, y);
-            this.drawSelectionBox();
-        }
-    }
-    
-    updateSelection(pointer: Phaser.Input.Pointer): void {
-        if (!this.isSelecting) return;
+            const endTileX = safeWorldToTileX(pointer.worldX);
+            const endTileY = safeWorldToTileY(pointer.worldY);
+            const startTileX = safeWorldToTileX(startPoint.x);
+            const startTileY = safeWorldToTileY(startPoint.y);
         
-        // Convert screen coordinates to tile coordinates
-        const x: number = Math.floor(pointer.x / (16 * this.SCALE));
-        const y: number = Math.floor(pointer.y / (16 * this.SCALE));
+            const tileStartX = Math.min(startTileX, endTileX);
+            const tileStartY = Math.min(startTileY, endTileY);
+            const tileEndX = Math.max(startTileX, endTileX);
+            const tileEndY = Math.max(startTileY, endTileY);
         
-        // Clamp to map bounds
-        const clampedX: number = Phaser.Math.Clamp(x, 0, this.CANVAS_WIDTH - 1);
-        const clampedY: number = Phaser.Math.Clamp(y, 0, this.CANVAS_HEIGHT - 1);
+            const selectedFeatureIndexes: number[] = [];
+            const selectedGrassIndexes: number[] = [];
         
-        this.selectionEnd.set(clampedX, clampedY);
-        this.drawSelectionBox();
-    }
-    
-    endSelection() {
-        if (!this.isSelecting) return;
-        
-        this.isSelecting = false;
-        this.collectSelectedTiles();
-        
-        // Logs the selected tiles for now
-        console.log('Selected Tiles:', this.selectedTiles);
-        
-    }
-    
-    drawSelectionBox() {
-        this.selectionBox.clear();
-        
-        if (!this.isSelecting) return;
-        
-        // Calculate the bounds of the selection
-        const startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
-        const startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
-        const endX = Math.max(this.selectionStart.x, this.selectionEnd.x);
-        const endY = Math.max(this.selectionStart.y, this.selectionEnd.y);
-        
-        // Draw a semi-transparent rectangle
-        this.selectionBox.fillStyle(0x00ff00, 0.3);
-        this.selectionBox.fillRect(
-            startX * 16 * this.SCALE, 
-            startY * 16 * this.SCALE, 
-            (endX - startX + 1) * 16 * this.SCALE, 
-            (endY - startY + 1) * 16 * this.SCALE
-        );
-        
-        // Draw a border
-        this.selectionBox.lineStyle(2, 0x00ff00, 1);
-        this.selectionBox.strokeRect(
-            startX * 16 * this.SCALE, 
-            startY * 16 * this.SCALE, 
-            (endX - startX + 1) * 16 * this.SCALE, 
-            (endY - startY + 1) * 16 * this.SCALE
-        );
-    }
-    
-    collectSelectedTiles() {
-        this.selectedTiles = [];
-        
-        const startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
-        const startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
-        const endX = Math.max(this.selectionStart.x, this.selectionEnd.x);
-        const endY = Math.max(this.selectionStart.y, this.selectionEnd.y);
-        
-        for (let y = startY; y <= endY; y++) {
-            for (let x = startX; x <= endX; x++) {
-                this.selectedTiles.push({ x, y });
+            for (let ty = tileStartY; ty <= tileEndY; ty++) {
+                for (let tx = tileStartX; tx <= tileEndX; tx++) {
+                    const featureTile = this.featureLayer.getTileAt(tx, ty);
+                    if (featureTile && featureTile.index != null) {
+                        selectedFeatureIndexes.push(featureTile.index);
+                    } else {
+                        const grassTile = this.grassLayer.getTileAt(tx, ty);
+                        if (grassTile && grassTile.index != null) {
+                            selectedGrassIndexes.push(grassTile.index);
+                        }
+                    }
+                }
             }
-        }
+        
+            // Decision: prioritize features if they exist
+            if (selectedFeatureIndexes.length > 0) {
+                console.log('Selected Feature Tile Indexes:', selectedFeatureIndexes);
+            } else {
+                console.log('Selected Grass Tile Indexes:', selectedGrassIndexes);
+            }
+        });
+        
     }
 
-    clearSelection(){
-        this.isSelecting = false;
-        this.selectionBox.clear();
-        this.selectedTiles = [];
-        console.log('Selection cleared');
+    // Helper function to draw dotted rectangle
+    private drawDottedRect(graphics: Phaser.GameObjects.Graphics, x: number, y: number, width: number, height: number, dashSize: number) {
+        const drawDottedLine = (x1: number, y1: number, x2: number, y2: number) => {
+            const length = Phaser.Math.Distance.Between(x1, y1, x2, y2);
+            const dashCount = Math.floor(length / dashSize);
+
+            for (let i = 0; i < dashCount; i += 2) {
+                const t1 = i / dashCount;
+                const t2 = Math.min((i + 1) / dashCount, 1);
+
+                const startX = Phaser.Math.Linear(x1, x2, t1);
+                const startY = Phaser.Math.Linear(y1, y2, t1);
+                const endX = Phaser.Math.Linear(x1, x2, t2);
+                const endY = Phaser.Math.Linear(y1, y2, t2);
+
+                graphics.moveTo(startX, startY);
+                graphics.lineTo(endX, endY);
+            }
+
+            graphics.strokePath();
+        };
+
+        drawDottedLine(x, y, x + width, y); // Top
+        drawDottedLine(x + width, y, x + width, y + height); // Right
+        drawDottedLine(x + width, y + height, x, y + height); // Bottom
+        drawDottedLine(x, y + height, x, y); // Left
     }
 }
 
