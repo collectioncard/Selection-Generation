@@ -63,6 +63,26 @@ button:focus-visible {
   flex-direction: column;
 }
 
+#map-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 1rem;
+}
+
+#selection-controls {
+  margin-top: 0.5rem;
+}
+
+#clear-selection {
+  background-color: #ff3e3e;
+  margin-top: 0.5rem;
+}
+
+#clear-selection:hover {
+  border-color: #ff0000;
+}
+
 #llm-chat {
   width: 500px;
   min-width: 320px;
