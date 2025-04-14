@@ -4,9 +4,10 @@ import {ChatMessage} from "./modelChatTypes.ts";
 const sysPrompt = "You are an expert tile-based map designer. The user will ask for you do to things and you are to always" +
     "respond correctly to any of their requests";
 
-    const modelURL: string = "no";
-    const apiKey: string = "no";
-    const modelName: string = "no";
+    const modelURL: string = import.meta.env.VITE_LLM_URL || "no";
+
+    const apiKey: string = import.meta.env.VITE_LLM_API_KEY || "no";
+    const modelName: string = import.meta.env.VITE_LLM_MODEL_NAME || "no";
 
 const ai = new OpenAI({
     baseURL: modelURL,
