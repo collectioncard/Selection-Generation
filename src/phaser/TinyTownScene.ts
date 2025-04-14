@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import {houseGenerator} from "./featureGenerators/houseGenerator";
 import {completedSection, generatorInput} from "./featureGenerators/GeneratorInterface.ts";
 
-class TinyTownScene extends Phaser.Scene {
+export class TinyTownScene extends Phaser.Scene {
     private readonly SCALE = 1;
     private readonly CANVAS_WIDTH = 40;  //Size in tiles
     private readonly CANVAS_HEIGHT = 25; // ^^^
