@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 
-import {HouseGenerator} from "./featureGenerators/houseGenerator";
+import {Preload} from './Preload';
+import {houseGenerator} from "./featureGenerators/houseGenerator";
 import {completedSection, generatorInput} from "./featureGenerators/GeneratorInterface.ts";
 
 export class TinyTownScene extends Phaser.Scene {
@@ -266,7 +267,7 @@ export function createGame(attachPoint: HTMLDivElement) {
         width: 640,
         height: 400,
         parent: attachPoint,
-        scene: [TinyTownScene]
+        scene: [Preload, TinyTownScene]
     };
 
     return new Phaser.Game(config);
