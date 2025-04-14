@@ -5,13 +5,12 @@ import {ChatMessage} from "./modelChatTypes.ts";
 const sysPrompt = "You are an expert tile-based map designer. The user will ask for you do to things and you are to always" +
     "respond correctly to any of their requests";
 
-    // not needed for google, but needed for openai
+    // All parameters are set in the .env file. Please refer to the .env.example file for more information and example values.
+    // model url not needed for google, but needed for openai
     const modelURL: string = import.meta.env.VITE_LLM_URL || "no";
-    // use either your openai api key or your google api key
+
     const apiKey: string = import.meta.env.VITE_LLM_API_KEY || "no";
-    // for gemini, I recommend: 'gemini-2.0-flash'
     const modelName: string = import.meta.env.VITE_LLM_MODEL_NAME || "no";
-    // should be set to "openai" or "google";
     const llmProvider: string =  import.meta.env.VITE_LLM_MODEL_TYPE || "no"
 
     var openai : OpenAI;
