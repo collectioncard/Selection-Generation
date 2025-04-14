@@ -11,6 +11,7 @@ class TinyTownScene extends Phaser.Scene {
     private tilemap!: Phaser.Tilemaps.Tilemap;
     private featureLayer!: Phaser.Tilemaps.TilemapLayer;
     private grassLayer!: Phaser.Tilemaps.TilemapLayer;
+    private selectionRect!: Phaser.GameObjects.Graphics;
 
 
     constructor() {
@@ -65,9 +66,9 @@ class TinyTownScene extends Phaser.Scene {
 
         let isDragging = false;
         let startPoint = new Phaser.Math.Vector2();
-        let selectionRect = this.add.graphics();
-        selectionRect.lineStyle(3, 0xff0000, 1);
-        selectionRect.setDepth(10);
+        this.selectionRect = this.add.graphics();
+        this.selectionRect.lineStyle(3, 0xff0000, 1);
+        this.selectionRect.setDepth(10);
 
         // Safe helper functions to ensure no null values
         const safeWorldToTileX = (worldX: number) => this.tilemap.worldToTileX(worldX) ?? 0;
@@ -79,8 +80,8 @@ class TinyTownScene extends Phaser.Scene {
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             isDragging = true;
             startPoint.set(pointer.worldX, pointer.worldY);
-            selectionRect.clear();
-            selectionRect.lineStyle(3, 0xff0000, 1);
+            this.selectionRect.clear();
+            this.selectionRect.lineStyle(3, 0xff0000, 1);
         });
 
         // Pointer move: update selection box
@@ -98,13 +99,13 @@ class TinyTownScene extends Phaser.Scene {
             const width = Math.abs(pointerTileX - startTileX) + this.tilemap.tileWidth;
             const height = Math.abs(pointerTileY - startTileY) + this.tilemap.tileHeight;
 
-            selectionRect.clear();
-            selectionRect.lineStyle(3, 0xff0000, 1);
-            selectionRect.fillStyle(0xff0000, 0.1);
-            selectionRect.fillRect(x, y, width, height);
+            this.selectionRect.clear();
+            this.selectionRect.lineStyle(3, 0xff0000, 1);
+            this.selectionRect.fillStyle(0xff0000, 0.1);
+            this.selectionRect.fillRect(x, y, width, height);
 
             const dashSize = 4;
-            this.drawDottedRect(selectionRect, x, y, width, height, dashSize);
+            this.drawDottedRect(this.selectionRect, x, y, width, height, dashSize);
         });
 
         // Pointer up: finalize selection
@@ -174,6 +175,14 @@ class TinyTownScene extends Phaser.Scene {
         drawDottedLine(x + width, y, x + width, y + height); // Right
         drawDottedLine(x + width, y + height, x, y + height); // Bottom
         drawDottedLine(x, y + height, x, y); // Left
+    }
+
+    // Clear Selection function
+    public clearSelection(): void {
+        if (this.selectionRect) {
+            this.selectionRect.clear();
+        }
+        console.log('Selection cleared');
     }
 }
 
