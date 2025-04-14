@@ -1,5 +1,5 @@
 import './style.css'
-import {createGame} from "./phaser/TinyTownScene.ts";
+import {createGame, TinyTownScene} from "./phaser/TinyTownScene.ts";
 import './modelChat/chatbox.ts';
 
 let gameInstance: Phaser.Game | null = null;
