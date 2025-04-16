@@ -28,7 +28,12 @@ let tools : any = [];
 // this stores backwards references to the tool functions from their names
 let toolsByName : any = {};
 
+// this is the llm to call that has the tools
+// it needs to be rebound after all tools are in the list.
+let llmWithTools : any= llm.bindTools(tools);
 
+
+// AddTool is a tool that serves as an example of how to add a tool to the model
 const addTool = tool(
     async ({ a, b }) => {
       console.log("ADDING A AND B");
@@ -43,31 +48,40 @@ const addTool = tool(
       description: "Adds a and b.",
     }
   );
-tools.push(addTool);
-toolsByName[addTool.name] = addTool;
+// once the tool is created, it is added to the tools array and the toolsByName object
+registerTool(addTool);
 
 
-// this is the llm to call that has the tools
-let llmWithTools : any= llm.bindTools(tools);
+export function registerTool(tool: any){
+    tools.push(tool);
+    toolsByName[tool.name] = tool;
+    console.log("Tool registered: ", tool.name);
+    // not efficient to be rebinding the tools every time, but this is a quick fix
+    // to make sure the tools are always up to date
+    // if possible, initializeLLM should be called after all tools are registered
+    // and then llmWithTools should be called once
+    llmWithTools = llm.bindTools(tools);
+}
+
 export async function initilizeLLM(chatMessageHistory: BaseMessage[]): Promise<void> {
-    // this is the system message that initializes the model
-    const systemMessage = new SystemMessage(sysPrompt);
-    chatMessageHistory.push(systemMessage);
-    console.log("Tools initialized: ", tools.length);
+  // this is the system message that initializes the model
+  const systemMessage = new SystemMessage(sysPrompt);
+  chatMessageHistory.push(systemMessage);
+  console.log("Tools initialized: ", tools.length);
 }
 
 export async function getChatResponse(chatMessageHistory: BaseMessage[]): Promise<string> {
-    let response = await llmWithTools.invoke(chatMessageHistory);
-      chatMessageHistory.push(response);
-    for (const toolCall of response.tool_calls) {
-        const selectedTool = toolsByName[toolCall.name];
-        const result = await selectedTool.invoke(toolCall.args);
-        console.log(`Tool called ${toolCall.name} with result: ${result.content}`);
-        chatMessageHistory.push( new ToolMessage({ name: toolCall.name, content: result, tool_call_id: toolCall.id }) );
-    }
-    if (response.tool_calls.length > 0) {
-        response = await llmWithTools.invoke(chatMessageHistory);
-    }
-    return response.content ?? "Error communicating with model :(";
+  let response = await llmWithTools.invoke(chatMessageHistory);
+    chatMessageHistory.push(response);
+  for (const toolCall of response.tool_calls) {
+    const selectedTool = toolsByName[toolCall.name];
+    const result = await selectedTool.invoke(toolCall.args);
+    console.log(`Tool called ${toolCall.name} with result: ${result.content}`);
+    chatMessageHistory.push( new ToolMessage({ name: toolCall.name, content: result, tool_call_id: toolCall.id }) );
+  }
+  if (response.tool_calls.length > 0) {
+    response = await llmWithTools.invoke(chatMessageHistory);
+  }
+  return response.content ?? "Error communicating with model :(";
 }
 
