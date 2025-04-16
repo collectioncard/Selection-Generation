@@ -26,9 +26,9 @@ export const decorGenerator: FeatureGenerator = {
     {
       name: "decor",
       schema: z.object({
-        chance: z.number(), 
+        chance: z.number().min(0).max(1), // unfortnatly the .default() parameter does not seem to be supported.
       }),
-      description: "Adds decor to the map with a given chance.",
+      description: "Adds decor to the map with a given chance (default chance of 0.03).",
     }
   ),
 

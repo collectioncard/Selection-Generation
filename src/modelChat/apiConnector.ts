@@ -9,7 +9,8 @@ import {
   } from "@langchain/core/messages";
 
 const sysPrompt = "You are an expert tile-based map designer. The user will ask for you do to things and you are to always" +
-    "respond correctly to any of their requests";
+    "respond correctly to any of their requests" +
+    "When calling a tool, if the user does not specify a value, use a default value, or infer the value.";
 
 const apiKey: string = import.meta.env.VITE_LLM_API_KEY;
 const modelName: string = import.meta.env.VITE_LLM_MODEL_NAME;
