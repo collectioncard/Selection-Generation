@@ -1,6 +1,6 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { tool } from "@langchain/core/tools";
-import { z, ZodObject } from "zod";
+import { z } from "zod";
 
 import {
     BaseMessage,
@@ -53,9 +53,6 @@ export async function initilizeLLM(chatMessageHistory: BaseMessage[]): Promise<v
     // this is the system message that initializes the model
     const systemMessage = new SystemMessage(sysPrompt);
     chatMessageHistory.push(systemMessage);
-    // this is the system message that initializes the tools
-    // const toolSystemMessage = new SystemMessage("You have access to the following tools: " + JSON.stringify(tools));
-    // chatMessageHistory.push(toolSystemMessage);
     console.log("Tools initialized: ", tools.length);
 }
 
@@ -64,21 +61,13 @@ export async function getChatResponse(chatMessageHistory: BaseMessage[]): Promis
       chatMessageHistory.push(response);
     for (const toolCall of response.tool_calls) {
         const selectedTool = toolsByName[toolCall.name];
-        // const result = await selectedTool.invoke(toolCall);
-        const result = await selectedTool.invoke(toolCall.args); // Pass toolCall.args
-        // console.log(result);
+        const result = await selectedTool.invoke(toolCall.args);
         console.log(`Tool called ${toolCall.name} with result: ${result.content}`);
         chatMessageHistory.push( new ToolMessage({ name: toolCall.name, content: result, tool_call_id: toolCall.id }) );
     }
-    console.log("Tool calls: ", response.tool_calls.length);
     if (response.tool_calls.length > 0) {
-        
-        console.log("A");
-        console.log(chatMessageHistory)
         response = await llmWithTools.invoke(chatMessageHistory);
     }
-    console.log("B");
-    console.log(response);
     return response.content ?? "Error communicating with model :(";
 }
 
