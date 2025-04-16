@@ -68,7 +68,8 @@ export class HouseGenerator implements FeatureGenerator {
         console.log("getSceneFailed");
         return "Tool Failed, no reference to scene.";
       }
-      this.generate(scene.getSelection(), []);
+      let selection = scene.getSelection()
+      scene.putFeature(this.generate(selection, []));
       return `House added`;
     },
     {

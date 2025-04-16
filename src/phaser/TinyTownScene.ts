@@ -15,6 +15,9 @@ export class TinyTownScene extends Phaser.Scene {
     private isSelecting: boolean = false;
     private selectedTiles: { x: number; y: number }[] = [];
     
+    private grassLayer : Phaser.Tilemaps.TilemapLayer | null = null;
+    private featureLayer : Phaser.Tilemaps.TilemapLayer | null = null;
+
     constructor() {
         super('TinyTown');
     }
@@ -36,16 +39,16 @@ export class TinyTownScene extends Phaser.Scene {
 
         const tileSheet = map.addTilesetImage('tiny_town_tiles')!;
 
-        const grassLayer = map.createBlankLayer('base-layer', tileSheet, 0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT)!;
-        grassLayer.setScale(this.SCALE);
+        this.grassLayer = map.createBlankLayer('base-layer', tileSheet, 0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT)!;
+        this.grassLayer.setScale(this.SCALE);
 
-        const featureLayer = map.createBlankLayer('features-layer', tileSheet, 0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT)!;
-        featureLayer.setScale(this.SCALE);
+        this.featureLayer = map.createBlankLayer('features-layer', tileSheet, 0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT)!;
+        this.featureLayer.setScale(this.SCALE);
 
         //fill the grass layer with 1 of the three options
         for (let y = 0; y < this.CANVAS_HEIGHT; y++) {
             for (let x = 0; x < this.CANVAS_WIDTH; x++) {
-                grassLayer.putTileAt(Phaser.Math.Between(0, 2), x, y);
+                this.grassLayer.putTileAt(Phaser.Math.Between(0, 2), x, y);
             }
         }
         
@@ -71,7 +74,7 @@ export class TinyTownScene extends Phaser.Scene {
         const generatedData: completedSection = houseGen.generate(houseInput);
         
         // 3. Put that somewhere in the feature layer. 1,1 for this example.
-        featureLayer.putTilesAt(generatedData.grid, 1, 1);
+        this.featureLayer.putTilesAt(generatedData.grid, 1, 1);
       
         
     }
@@ -182,6 +185,12 @@ export class TinyTownScene extends Phaser.Scene {
             width: w,
             height: h,
         };
+    }
+
+    putFeature(generatedData : completedSection){
+        let x = Math.min(this.selectionStart.x, this.selectionEnd.x);
+        let y = Math.min(this.selectionStart.y, this.selectionEnd.y);
+        this.featureLayer?.putTilesAt(generatedData.grid, x,y);
     }
 }
 
