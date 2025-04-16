@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import {houseGenerator} from "./featureGenerators/houseGenerator";
 import {completedSection, generatorInput} from "./featureGenerators/GeneratorInterface.ts";
 
-class TinyTownScene extends Phaser.Scene {
+export class TinyTownScene extends Phaser.Scene {
     private readonly SCALE = 1;
     private readonly CANVAS_WIDTH = 40;  //Size in tiles
     private readonly CANVAS_HEIGHT = 25; // ^^^
@@ -164,6 +164,22 @@ class TinyTownScene extends Phaser.Scene {
         this.selectionBox.clear();
         this.selectedTiles = [];
         console.log('Selection cleared');
+    }
+
+    getSelection(): generatorInput {
+        let w = Math.abs(this.selectionStart.x - this.selectionEnd.x) + 1;
+        let h = Math.abs(this.selectionStart.y - this.selectionEnd.y) + 1;
+
+        let grid: number[][] = [];
+        for (let i = 0; i < h; i++) {
+            grid[i] = new Array(w).fill(-1); 
+        }
+
+        return {
+            grid: grid,
+            width: w,
+            height: h,
+        };
     }
 }
 

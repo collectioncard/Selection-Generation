@@ -1,6 +1,7 @@
 import {completedSection, FeatureGenerator, generatorInput} from './GeneratorInterface';
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+import { TinyTownScene } from '../TinyTownScene';
 
 const DECOR_CHANCE = 0.03;
 
@@ -17,10 +18,22 @@ const DECOR_TILES = {
   131: 'bucket full',
 };
 
-export const decorGenerator: FeatureGenerator = {
-  toolCall : tool(
+export class DecorGenerator implements FeatureGenerator {
+    sceneGetter: () => TinyTownScene;
+
+    constructor(sceneGetter: () => TinyTownScene) {
+        this.sceneGetter = sceneGetter;
+    }
+
+  toolCall = tool(
     async ({chance}) => {
       console.log("Adding decor with chance: ", chance);
+      let scene = this.sceneGetter();
+      if(scene == null){
+        console.log("getSceneFailed")
+        return "Tool Failed, no reference to scene."
+      }
+      this.generate(scene.getSelection(), []);
       return `${chance}`;
     },
     {
@@ -30,7 +43,7 @@ export const decorGenerator: FeatureGenerator = {
       }),
       description: "Adds decor to the map with a given chance (default chance of 0.03).",
     }
-  ),
+  );
 
   generate(mapSection: generatorInput, _args?: any): completedSection {
     let grid: number[][] = mapSection.grid;
@@ -50,5 +63,5 @@ export const decorGenerator: FeatureGenerator = {
       grid: grid,
       points_of_interest: new Map(),
     };
-  },
+  };
 };
