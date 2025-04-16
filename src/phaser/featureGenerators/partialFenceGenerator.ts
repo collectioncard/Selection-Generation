@@ -1,4 +1,7 @@
 import {completedSection, FeatureGenerator, generatorInput} from './GeneratorInterface';
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
+import { TinyTownScene } from '../TinyTownScene';
 
 const PADDING = 1; // minimum distance from the edge of the section
 
@@ -14,7 +17,33 @@ const tileIDs: Record<number, number> = {
 };
 
 //TODO: This one is not finished yet. Will maybe get to it soon
-export const partialFenceGenerator: FeatureGenerator = {
+export class PartialFenceGenerator implements FeatureGenerator {
+    sceneGetter: () => TinyTownScene;
+
+    constructor(sceneGetter: () => TinyTownScene) {
+        this.sceneGetter = sceneGetter;
+    }
+
+    toolCall = tool(
+        async () => {
+            console.log("Adding partial fence");
+            let scene = this.sceneGetter();
+            if(scene == null){
+                console.log("getSceneFailed");
+                return "Tool Failed, no reference to scene.";
+            }
+            this.generate(scene.getSelection(), []);
+            return `Partial fence added`;
+        },
+        {
+            name: "broken_fence",
+            schema: z.object({
+                edges: z.string().optional(),
+            }),
+            description: "Adds a partial fence to the map.",
+        }
+    );
+
     generate(mapSection: generatorInput, _args?: any): completedSection {
         const horizontalLength = Phaser.Math.Between(
             3,
@@ -69,5 +98,5 @@ export const partialFenceGenerator: FeatureGenerator = {
             grid,
             points_of_interest: new Map(),
         };
-    },
+    };
 };

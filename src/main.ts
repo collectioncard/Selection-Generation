@@ -4,6 +4,10 @@ import './modelChat/chatbox.ts';
 // Register tools from the scene to the apiConnector
 import { registerTool } from './modelChat/apiConnector.ts';
 import { DecorGenerator } from './phaser/featureGenerators/decorGenerator.ts';
+import { ForestGenerator } from './phaser/featureGenerators/forestGenerator.ts';
+import { HouseGenerator } from './phaser/featureGenerators/houseGenerator.ts';
+import { FullFenceGenerator } from './phaser/featureGenerators/fullFenceGenerator.ts';
+import { PartialFenceGenerator } from './phaser/featureGenerators/partialFenceGenerator.ts';
 
 let gameInstance: Phaser.Game | null = null;
 
@@ -17,8 +21,26 @@ gameInstance = await createGame(document.getElementById('map') as HTMLDivElement
 
 // Register tools here.
 // Migrated to making objects, so that generators have a reference to the scene.
-const decorGenerator = new DecorGenerator(getScene)
-registerTool(decorGenerator.toolCall);
+
+// const decorGenerator = new DecorGenerator(getScene)
+// registerTool(decorGenerator.toolCall);
+
+// const forestGenerator = new ForestGenerator(getScene)
+// registerTool(forestGenerator.toolCall);  
+
+const generators = {
+    decor: new DecorGenerator(getScene),
+    forest: new ForestGenerator(getScene),
+    house: new HouseGenerator(getScene),
+    full_fence: new FullFenceGenerator(getScene),
+    partial_fence: new PartialFenceGenerator(getScene)
+}
+
+Object.values(generators).forEach(generator => {
+    if (generator.toolCall) {
+        registerTool(generator.toolCall);
+    }
+});
 
 //I'll be sad if anyone removes my funny faces. They bring me joy when stuff doesn't work - Thomas
 document.title = "Selection Generation " + getRandEmoji();

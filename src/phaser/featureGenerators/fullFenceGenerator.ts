@@ -1,4 +1,7 @@
 import {completedSection, FeatureGenerator, generatorInput} from './GeneratorInterface';
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
+import { TinyTownScene } from '../TinyTownScene';
 
 const PADDING = 1; // minimum distance from the edge of the section
 
@@ -13,7 +16,32 @@ const tileIDs: Record<number, number> = {
   0b0010: 58, // Right
 };
 
-export const fullFenceGenerator: FeatureGenerator = {
+export class FullFenceGenerator implements FeatureGenerator {
+
+  sceneGetter: () => TinyTownScene;
+
+  constructor(sceneGetter: () => TinyTownScene) {
+    this.sceneGetter = sceneGetter;
+  }
+
+  toolCall = tool(
+    async ({}) => {
+      console.log("Adding full fence");
+      let scene = this.sceneGetter();
+      if(scene == null){
+        console.log("getSceneFailed");
+        return "Tool Failed, no reference to scene.";
+      }
+      this.generate(scene.getSelection(), []);
+      return "Fence added successfully";
+    },
+    {
+      name: "fence",
+      schema: z.object({}),
+      description: "Adds a complete fence around an area.",
+    }
+  );
+
   generate(mapSection: generatorInput, _args?: any): completedSection {
     const horizontalLength = Phaser.Math.Between(
       3,
@@ -65,5 +93,5 @@ export const fullFenceGenerator: FeatureGenerator = {
       grid,
       points_of_interest: new Map(),
     };
-  },
+  };
 };

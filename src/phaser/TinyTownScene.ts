@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 
-import {houseGenerator} from "./featureGenerators/houseGenerator";
+import {HouseGenerator} from "./featureGenerators/houseGenerator";
 import {completedSection, generatorInput} from "./featureGenerators/GeneratorInterface.ts";
 
 export class TinyTownScene extends Phaser.Scene {
@@ -65,8 +65,10 @@ export class TinyTownScene extends Phaser.Scene {
             height: 5
         };
         
+        const houseGen = new HouseGenerator(() => this);
+
         // 2. Pass it to the generator you want. House in this case.
-        const generatedData: completedSection = houseGenerator.generate(houseInput)
+        const generatedData: completedSection = houseGen.generate(houseInput);
         
         // 3. Put that somewhere in the feature layer. 1,1 for this example.
         featureLayer.putTilesAt(generatedData.grid, 1, 1);

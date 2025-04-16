@@ -1,4 +1,7 @@
 import {completedSection, FeatureGenerator, generatorInput} from './GeneratorInterface';
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
+import { TinyTownScene } from '../TinyTownScene';
 
 const TREE_CHANCE = 0.8; // Percentage of tiles that should be trees *roughly*
 
@@ -24,7 +27,33 @@ const TILE_TYPES = {
   },
 };
 
-export const forestGenerator: FeatureGenerator = {
+export class ForestGenerator implements FeatureGenerator {
+  sceneGetter: () => TinyTownScene;
+
+  constructor(sceneGetter: () => TinyTownScene) {
+      this.sceneGetter = sceneGetter;
+  }
+
+  toolCall = tool(
+    async ({chance}) => {
+      console.log("Adding decor with density: ", chance);
+      let scene = this.sceneGetter();
+      if(scene == null){
+        console.log("getSceneFailed")
+        return "Tool Failed, no reference to scene."
+      }
+      this.generate(scene.getSelection(), []);
+      return `${chance}`;
+    },
+    {
+      name: "forest",
+      schema: z.object({
+        chance: z.number().min(0).max(1), // unfortnatly the .default() parameter does not seem to be supported.
+      }),
+      description: 'Adds a forest to the map with a tree density of: ${TREE_CHANCE} (default).',
+    }
+  );
+
   generate(mapSection: generatorInput, _args?: any): completedSection {
     console.log('Generating forest');
 
@@ -101,5 +130,5 @@ export const forestGenerator: FeatureGenerator = {
       grid,
       points_of_interest: new Map(),
     };
-  },
+  };
 };
