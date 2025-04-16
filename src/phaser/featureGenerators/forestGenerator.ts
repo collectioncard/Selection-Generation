@@ -43,7 +43,7 @@ export class ForestGenerator implements FeatureGenerator {
         return "Tool Failed, no reference to scene."
       }
       let selection = scene.getSelection()
-      scene.putFeature(this.generate(selection, []));
+      scene.putFeatureAtSelection(this.generate(selection, []));
       return `${chance}`;
     },
     {

@@ -187,7 +187,7 @@ export class TinyTownScene extends Phaser.Scene {
         };
     }
 
-    putFeature(generatedData : completedSection){
+    putFeatureAtSelection(generatedData : completedSection){
         let x = Math.min(this.selectionStart.x, this.selectionEnd.x);
         let y = Math.min(this.selectionStart.y, this.selectionEnd.y);
         this.featureLayer?.putTilesAt(generatedData.grid, x,y);
