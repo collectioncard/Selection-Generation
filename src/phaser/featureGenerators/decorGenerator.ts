@@ -1,4 +1,6 @@
 import {completedSection, FeatureGenerator, generatorInput} from './GeneratorInterface';
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
 
 const DECOR_CHANCE = 0.03;
 
@@ -16,6 +18,20 @@ const DECOR_TILES = {
 };
 
 export const decorGenerator: FeatureGenerator = {
+  toolCall : tool(
+    async ({chance}) => {
+      console.log("Adding decor with chance: ", chance);
+      return `${chance}`;
+    },
+    {
+      name: "decor",
+      schema: z.object({
+        chance: z.number(), 
+      }),
+      description: "Adds decor to the map with a given chance.",
+    }
+  ),
+
   generate(mapSection: generatorInput, _args?: any): completedSection {
     let grid: number[][] = mapSection.grid;
 

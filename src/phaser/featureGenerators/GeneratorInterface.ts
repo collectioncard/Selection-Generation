@@ -18,6 +18,7 @@ export interface completedSection {
 }
 
 export interface FeatureGenerator {
+    toolCall ?: any;
     generate(mapSection: generatorInput, args?: any): completedSection;
 }
 

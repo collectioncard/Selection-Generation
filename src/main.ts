@@ -1,6 +1,9 @@
 import './style.css'
 import {createGame} from "./phaser/TinyTownScene.ts";
 import './modelChat/chatbox.ts';
+// Register tools from the scene to the apiConnector
+import { registerTool } from './modelChat/apiConnector.ts';
+import { decorGenerator } from './phaser/featureGenerators/decorGenerator.ts';
 
 let gameInstance: Phaser.Game | null = null;
 
@@ -8,6 +11,9 @@ function getScene(): TinyTownScene | null {
     if (!gameInstance) return null;
     return gameInstance.scene.getScene('TinyTown') as TinyTownScene;
 }
+
+// Register tools here.
+registerTool(decorGenerator.toolCall);
 
 gameInstance = createGame(document.getElementById('map') as HTMLDivElement);
 
