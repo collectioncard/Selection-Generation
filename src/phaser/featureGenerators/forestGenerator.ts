@@ -1,9 +1,9 @@
-import {completedSection, FeatureGenerator, generatorInput} from './GeneratorInterface';
+import { completedSection, FeatureGenerator, generatorInput } from './GeneratorInterface';
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { TinyTownScene } from '../TinyTownScene';
 
-const TREE_CHANCE = 0.8; // Percentage of tiles that should be trees *roughly*
+const TREE_CHANCE = 0.8;
 
 const TILE_TYPES = {
   mushrooms: [29],
@@ -31,105 +31,131 @@ export class ForestGenerator implements FeatureGenerator {
   sceneGetter: () => TinyTownScene;
 
   constructor(sceneGetter: () => TinyTownScene) {
-      this.sceneGetter = sceneGetter;
+    this.sceneGetter = sceneGetter;
   }
 
+  static forestArgsSchema = z.object({
+    width: z.number().min(1).max(50).optional(),
+    height: z.number().min(1).max(50).optional(),
+    mushrooms: z.number().min(0).max(100).optional(),
+    yellowTrees: z.number().min(0).max(100).optional(),
+    greenTrees: z.number().min(0).max(100).optional(),
+  });
+
   toolCall = tool(
-    async ({chance}) => {
-      console.log("Adding decor with density: ", chance);
-      let scene = this.sceneGetter();
-      if(scene == null){
-        console.log("getSceneFailed")
-        return "Tool Failed, no reference to scene."
+    async (args: z.infer<typeof ForestGenerator.forestArgsSchema>) => {
+      console.log("Generating forest with args:", args);
+      const scene = this.sceneGetter();
+      if (!scene) return "Tool Failed: No reference to scene.";
+
+      const selection = scene.getSelection();
+
+      // Resize grid if specified
+      if (args.width && args.height) {
+        selection.width = args.width;
+        selection.height = args.height;
+        selection.grid = Array.from({ length: args.height }, () =>
+          Array(args.width).fill(-1)
+        );
       }
-      let selection = scene.getSelection()
-      scene.putFeatureAtSelection(this.generate(selection, []));
-      return `${chance}`;
+
+      scene.putFeatureAtSelection(this.generate(selection, args));
+      return "Forest added.";
     },
     {
       name: "forest",
-      schema: z.object({
-        chance: z.number().min(0).max(1), // unfortnatly the .default() parameter does not seem to be supported.
-      }),
-      description: 'Adds a forest to the map with a tree density of: ${TREE_CHANCE} (default).',
+      schema: ForestGenerator.forestArgsSchema,
+      description:
+        "Adds a forest to the map. Optional args: width, height, mushrooms, yellowTrees, greenTrees.",
     }
   );
 
-  generate(mapSection: generatorInput, _args?: any): completedSection {
-    console.log('Generating forest');
+  generate(
+    mapSection: generatorInput,
+    args?: z.infer<typeof ForestGenerator.forestArgsSchema>
+  ): completedSection {
+    const grid = mapSection.grid;
+    const width = mapSection.width;
+    const height = mapSection.height;
 
-    let grid = mapSection.grid;
+    // Step 1: Generate base random forest
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (grid[y][x] !== -1 || Math.random() > TREE_CHANCE) continue;
 
-    for (let y = 0; y < mapSection.height; y++) {
-      for (let x = 0; x < mapSection.width; x++) {
-        // randomly skip a few tiles
-        if (grid[y][x] !== -1 || Math.random() > TREE_CHANCE) {
-          continue;
-        }
-
-        let plantType: number = Phaser.Math.Between(0, 100);
-        let plantColor: 'green' | 'yellow' =
-          Math.random() < 0.5 ? 'green' : 'yellow';
+        const plantType = Phaser.Math.Between(0, 100);
+        const color: 'green' | 'yellow' = Math.random() < 0.5 ? 'green' : 'yellow';
 
         if (plantType < 7) {
-          // 7% chance of mushrooms
           grid[y][x] = Phaser.Utils.Array.GetRandom(TILE_TYPES.mushrooms);
         } else if (plantType < 30) {
-          // 23% chance of small trees/plants
-          grid[y][x] = Phaser.Utils.Array.GetRandom(
-            TILE_TYPES.bushes[plantColor],
-          );
-        } else if (plantType < 60 && y + 1 < mapSection.height) {
-          // 30%ish chance of 2 tile trees
-          let currTree = TILE_TYPES.trees.single[plantColor];
+          grid[y][x] = Phaser.Utils.Array.GetRandom(TILE_TYPES.bushes[color]);
+        } else if (plantType < 60 && y + 1 < height) {
+          const tree = TILE_TYPES.trees.single[color];
           if (grid[y + 1][x] === -1) {
-            grid[y][x] = currTree[0];
-            grid[y + 1][x] = currTree[1];
+            grid[y][x] = tree[0];
+            grid[y + 1][x] = tree[1];
           }
         } else if (
           plantType < 85 &&
-          y + 1 < mapSection.height &&
-          x + 1 < mapSection.width
+          y + 1 < height &&
+          x + 1 < width &&
+          grid[y + 1][x] === -1 &&
+          grid[y][x + 1] === -1 &&
+          grid[y + 1][x + 1] === -1
         ) {
-          let currTree = TILE_TYPES.trees.stack1[plantColor];
-          if (
-            grid[y + 1][x] === -1 &&
-            grid[y][x + 1] === -1 &&
-            grid[y + 1][x + 1] === -1
-          ) {
-            grid[y][x] = currTree[0];
-            grid[y][x + 1] = currTree[1];
-            grid[y + 1][x] = currTree[2];
-            grid[y + 1][x + 1] = currTree[3];
-          }
+          const tree = TILE_TYPES.trees.stack1[color];
+          grid[y][x] = tree[0];
+          grid[y][x + 1] = tree[1];
+          grid[y + 1][x] = tree[2];
+          grid[y + 1][x + 1] = tree[3];
         } else if (
-          y + 2 < mapSection.height &&
+          y + 2 < height &&
           x - 1 >= 0 &&
-          x + 1 < mapSection.width
+          x + 1 < width &&
+          grid[y + 1][x] === -1 &&
+          grid[y + 2][x] === -1 &&
+          grid[y + 1][x - 1] === -1 &&
+          grid[y + 1][x + 1] === -1
         ) {
-          //5 tile trees
-          let stack = TILE_TYPES.trees.stack2[plantColor];
-          if (
-            grid[y + 1][x] === -1 &&
-            grid[y + 2][x] === -1 &&
-            grid[y + 1][x - 1] === -1 &&
-            grid[y + 1][x + 1] === -1
-          ) {
-            grid[y][x] = stack[0];
-            grid[y + 1][x] = stack[1];
-            grid[y + 2][x] = stack[2];
-            grid[y + 1][x - 1] = stack[3];
-            grid[y + 1][x + 1] = stack[4];
-          }
+          const tree = TILE_TYPES.trees.stack2[color];
+          grid[y][x] = tree[0];
+          grid[y + 1][x] = tree[1];
+          grid[y + 2][x] = tree[2];
+          grid[y + 1][x - 1] = tree[3];
+          grid[y + 1][x + 1] = tree[4];
         }
       }
     }
 
+    // Step 2: Add specific elements over the random forest
+    const placeables: { x: number; y: number }[] = [];
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (grid[y][x] === -1) {
+          placeables.push({ x, y });
+        }
+      }
+    }
+
+    Phaser.Utils.Array.Shuffle(placeables);
+
+    const placeOne = (tileId: number, count: number) => {
+      for (let i = 0; i < count && placeables.length; i++) {
+        const { x, y } = placeables.pop()!;
+        grid[y][x] = tileId;
+      }
+    };
+
+    placeOne(TILE_TYPES.mushrooms[0], args?.mushrooms ?? 0);
+    placeOne(TILE_TYPES.trees.single.yellow[0], args?.yellowTrees ?? 0);
+    placeOne(TILE_TYPES.trees.single.green[0], args?.greenTrees ?? 0);
+
     return {
       name: 'forest',
-      description: 'A dense forest',
+      description: `A ${width}x${height} forest with custom elements`,
       grid,
       points_of_interest: new Map(),
     };
-  };
-};
+  }
+}
