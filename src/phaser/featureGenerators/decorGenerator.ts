@@ -3,7 +3,7 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { TinyTownScene } from '../TinyTownScene';
 
-const DECOR_CHANCE = 0.03;
+const DECOR_CHANCE = 0.05;
 
 const DECOR_TILES = {
   27: 'orange tree',

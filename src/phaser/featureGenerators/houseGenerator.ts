@@ -8,7 +8,7 @@ const MIN_HOUSE_HEIGHT = 3;
 const BORDER_PADDING = 1;
 
 const HOUSE_TILES = {
-  // Grey roof tiles
+  // Roofs
   48: 'grey roof tile',
   49: 'grey roof tile',
   50: 'grey roof tile',
@@ -17,8 +17,6 @@ const HOUSE_TILES = {
   61: 'grey roof tile',
   62: 'grey roof tile',
   63: 'grey roof pointed',
-
-  // Red roof tiles
   52: 'red roof left edge',
   53: 'red roof middle',
   54: 'red roof right edge',
@@ -28,7 +26,7 @@ const HOUSE_TILES = {
   66: 'red roof bottom right',
   67: 'red roof pointed',
 
-  // Brown house tiles
+  // Brown house
   72: 'brown house left wall',
   73: 'brown house middle wall',
   74: 'brown house entrance',
@@ -38,7 +36,7 @@ const HOUSE_TILES = {
   86: 'brown house double door left',
   87: 'brown house double door right',
 
-  // Grey house tiles
+  // Grey house
   76: 'grey house left wall',
   77: 'grey house middle wall',
   78: 'grey house entrance',
@@ -91,12 +89,20 @@ export class HouseGenerator implements FeatureGenerator {
     const houseX = Phaser.Math.Between(BORDER_PADDING, mapSection.width - houseWidth - BORDER_PADDING);
     const houseY = Phaser.Math.Between(BORDER_PADDING, mapSection.height - houseHeight - BORDER_PADDING);
 
-    // Texture offsets
+    // Determine style
     let wallTextureOffset: -4 | 0 = Math.random() < 0.5 ? -4 : 0;
     if (args?.style === 'brown') wallTextureOffset = -4;
     if (args?.style === 'grey') wallTextureOffset = 0;
 
-    const isRedRoof = args?.roof === 'red' || (!args?.roof && Math.random() < 0.5);
+    // Determine roof based on style
+    let isRedRoof: boolean;
+    if (args?.roof) {
+      isRedRoof = args.roof === 'red';
+    } else {
+      // Default rule: brown house -> grey roof, grey house -> red roof
+      isRedRoof = wallTextureOffset === 0;
+    }
+
     const roofTextureOffset = isRedRoof ? 0 : -4;
 
     const chimneyX = Phaser.Math.Between(-1, houseWidth - 1);
@@ -146,7 +152,6 @@ export class HouseGenerator implements FeatureGenerator {
     shuffledDoors.forEach((doorX, index) => {
       grid[houseY + houseHeight - 1][doorX] = 89 + wallTextureOffset;
 
-      // Only place awning if it's a roof tile
       const awningY = houseY + 1;
       if (![77 + wallTextureOffset, 79 + wallTextureOffset].includes(grid[awningY][doorX])) {
         grid[awningY][doorX] = 67 + roofTextureOffset;
@@ -157,7 +162,7 @@ export class HouseGenerator implements FeatureGenerator {
 
     return {
       name: 'House',
-      description: `${args?.style ?? 'A'} ${args?.roof ?? 'random'}-roof house with ${doorCount} door(s) and ${windowCount} window(s)`,
+      description: `${args?.style ?? 'A'} house with a ${isRedRoof ? 'red' : 'grey'} roof, ${doorCount} door(s), and ${windowCount} window(s)`,
       grid,
       points_of_interest,
     };
