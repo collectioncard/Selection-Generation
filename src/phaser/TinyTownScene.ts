@@ -4,6 +4,10 @@ import {Preload} from './Preload';
 import {houseGenerator} from "./featureGenerators/houseGenerator";
 import {completedSection, generatorInput} from "./featureGenerators/GeneratorInterface.ts";
 
+interface TinyTownSceneData {
+    dict: { [key: number]: string };
+}
+
 export class TinyTownScene extends Phaser.Scene {
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
@@ -30,8 +34,18 @@ export class TinyTownScene extends Phaser.Scene {
     private grassLayer : Phaser.Tilemaps.TilemapLayer | null = null;
     private featureLayer : Phaser.Tilemaps.TilemapLayer | null = null;
 
+    // set of tile indexes used for tile understanding
+    private selectedTileSet = new Set<number>();
+    private tileDictionary!: { [key: number]: string };
+    
     constructor() {
         super('TinyTown');
+    }
+
+    init(data: TinyTownSceneData) {
+        console.log(data);
+        this.tileDictionary = data.dict;
+        console.log(this.tileDictionary);
     }
 
     preload() {
@@ -149,8 +163,14 @@ export class TinyTownScene extends Phaser.Scene {
         this.collectSelectedTiles();
         
         // Logs the selected tiles for now
+
+        //Tile understanding: Given the tile indexes, return the descriptions based on the dictionary
         console.log('Selected Tiles:', this.selectedTiles);
-        
+        // loop through selectedTileSet once it works
+        for (let tileID of this.selectedTileSet) {
+            const description = this.tileDictionary[tileID];
+            console.log(`TileID ${tileID}: ${description}`);
+        }
     }
     
     drawSelectionBox() {
@@ -228,6 +248,8 @@ export class TinyTownScene extends Phaser.Scene {
             this.selectedTiles.combinedGrid[y][x] = (featureTileId !== -1) ? featureTileId : grassTileId;
 
           }
+
+          
         }
     }
 

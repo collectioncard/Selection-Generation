@@ -1,11 +1,9 @@
 import Phaser from 'phaser';
-import {Tile} from "./Tile.ts";
-//import database from 'public/phaserAssets/Assets/TileDatabase.json'
 
 export class Preload extends Phaser.Scene {
-    
-    tileObjects: Tile[] = [];
 
+    tileDictionary: { [key: number]: string } = {};
+    
     constructor() {
         super('Preload');
     }
@@ -15,14 +13,23 @@ export class Preload extends Phaser.Scene {
     }
 
     create() {
-        this.scene.start('TinyTown');
-        this.createTiles();
+        this.createTileDictionary();
+        this.scene.start('TinyTown', {dict: this.tileDictionary});
     }
 
-    createTiles() {
+    createTileDictionary() {
         const database = this.cache.json.get('tileDatabase');
-        const tileData: { TileID: number, Description: string }[] = database.Tilemap_Packed_Tileset;
-        this.tileObjects = tileData.map((data) => new Tile(data.TileID, data.Description));
-        console.log(this.tileObjects);
+
+        if (!database || !database.Tilemap_Packed_Tileset) {
+            console.error('Tile database not found or improperly formatted.');
+            return;
+        }
+
+        this.tileDictionary = {};
+        for (const tile of database.Tilemap_Packed_Tileset) {
+            this.tileDictionary[tile.TileID] = tile.Description;
+        }
+
+        console.log('Tile Dictionary:', this.tileDictionary);
     }
 }
