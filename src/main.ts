@@ -8,6 +8,7 @@ import { ForestGenerator } from './phaser/featureGenerators/forestGenerator.ts';
 import { HouseGenerator } from './phaser/featureGenerators/houseGenerator.ts';
 import { FullFenceGenerator } from './phaser/featureGenerators/fullFenceGenerator.ts';
 import { PartialFenceGenerator } from './phaser/featureGenerators/partialFenceGenerator.ts';
+import { TilePlacer } from './phaser/simpleTools/placeTile.ts';
 
 let gameInstance: Phaser.Game | null = null;
 
@@ -33,7 +34,8 @@ const generators = {
     forest: new ForestGenerator(getScene),
     house: new HouseGenerator(getScene),
     full_fence: new FullFenceGenerator(getScene),
-    partial_fence: new PartialFenceGenerator(getScene)
+    partial_fence: new PartialFenceGenerator(getScene),
+    tile_placer: new TilePlacer(getScene)
 }
 
 Object.values(generators).forEach(generator => {
