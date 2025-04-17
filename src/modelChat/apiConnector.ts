@@ -30,7 +30,7 @@ let llmWithTools : any= llm.bindTools(tools);
 
 
 // Removed example add tool, if debugging, it can be found at commit e47c980
-// https://github.com/collectioncard/Selection-Generation/commit/e47c98052a9d6097f9e7df709227713fb1434483
+// https://github.com/collectioncard/Selection-Generation/blob/b78f4e48726f6da031606f6653960f227da39373/src/modelChat/apiConnector.ts
 
 export function registerTool(tool: any){
     tools.push(tool);
@@ -60,7 +60,7 @@ export async function getChatResponse(chatMessageHistory: BaseMessage[]): Promis
     const selectedTool = toolsByName[toolCall.name];
     const result = await selectedTool.invoke(toolCall.args);
 
-    console.log(`Tool called ${toolCall.name} with result: ${result.content}`);
+    console.log(`Tool called ${toolCall.name} with result: ${result}`);
     chatMessageHistory.push( new ToolMessage({ name: toolCall.name, content: result, tool_call_id: toolCall.id }) );
   }
   
