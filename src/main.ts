@@ -45,6 +45,13 @@ Object.values(generators).forEach(generator => {
 //I'll be sad if anyone removes my funny faces. They bring me joy when stuff doesn't work - Thomas
 document.title = "Selection Generation " + getRandEmoji();
 
+document.getElementById('all-selection')?.addEventListener('click', () => {
+    const scene = getScene();
+    if (scene) {
+        scene.setSelectionCoordinates(0,0,scene.CANVAS_WIDTH, scene.CANVAS_HEIGHT);
+    }
+});
+
 // Clear selection button
 document.getElementById('clear-selection')?.addEventListener('click', () => {
     const scene = getScene();

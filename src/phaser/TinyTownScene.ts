@@ -5,8 +5,8 @@ import {completedSection, generatorInput} from "./featureGenerators/GeneratorInt
 
 export class TinyTownScene extends Phaser.Scene {
     private readonly SCALE = 1;
-    private readonly CANVAS_WIDTH = 40;  //Size in tiles
-    private readonly CANVAS_HEIGHT = 25; // ^^^
+    public readonly CANVAS_WIDTH = 40;  //Size in tiles
+    public readonly CANVAS_HEIGHT = 25; // ^^^
 
     // selection box properties
     private selectionBox!: Phaser.GameObjects.Graphics;
@@ -92,6 +92,28 @@ export class TinyTownScene extends Phaser.Scene {
             this.drawSelectionBox();
         }
     }
+    setSelectionCoordinates(x: number, y: number, w: number, h: number): void {
+        const endX = x + w - 1;
+        const endY = y + h - 1;
+
+        if (w >= 1 && h >= 1 &&
+            x >= 0 && x < this.CANVAS_WIDTH &&
+            y >= 0 && y < this.CANVAS_HEIGHT &&
+            endX >= 0 && endX < this.CANVAS_WIDTH &&
+            endY >= 0 && endY < this.CANVAS_HEIGHT)
+        {
+            this.isSelecting = true;
+            this.selectionStart = new Phaser.Math.Vector2(x, y);
+
+            this.selectionEnd = new Phaser.Math.Vector2(endX, endY);
+            this.drawSelectionBox();
+            
+            this.endSelection();
+        } else {
+            console.warn(`Invalid selection coordinates provided: x=${x}, y=${y}, w=${w}, h=${h}. Selection not set.`);
+        }
+    }
+
     
     updateSelection(pointer: Phaser.Input.Pointer): void {
         if (!this.isSelecting) return;
