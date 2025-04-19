@@ -13,8 +13,17 @@ export class TinyTownScene extends Phaser.Scene {
     private selectionStart!: Phaser.Math.Vector2;
     private selectionEnd!: Phaser.Math.Vector2;
     private isSelecting: boolean = false;
-    private selectedTiles: { x: number; y: number }[] = [];
-    
+    private selectedTiles: {
+        coordinates: { x: number; y: number }[];  
+        dimensions: { width: number; height: number };
+        tileGrid: number[][];  // grass layer
+        featureGrid: number[][]; // feature layer
+      } = {
+        coordinates: [],
+        dimensions: { width: 0, height: 0 },
+        tileGrid: [],
+        featureGrid: []
+      };    
     private grassLayer : Phaser.Tilemaps.TilemapLayer | null = null;
     private featureLayer : Phaser.Tilemaps.TilemapLayer | null = null;
 
@@ -172,40 +181,64 @@ export class TinyTownScene extends Phaser.Scene {
     }
     
     collectSelectedTiles() {
-        this.selectedTiles = [];
-        
         const startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
         const startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
         const endX = Math.max(this.selectionStart.x, this.selectionEnd.x);
         const endY = Math.max(this.selectionStart.y, this.selectionEnd.y);
         
-        for (let y = startY; y <= endY; y++) {
-            for (let x = startX; x <= endX; x++) {
-                this.selectedTiles.push({ x, y });
+        const width = endX - startX + 1;
+        const height = endY - startY + 1;
+        
+        // Reset the selectedTiles
+        this.selectedTiles = {
+          coordinates: [],
+          dimensions: { width, height },
+          tileGrid: Array(height).fill(0).map(() => Array(width).fill(-1)),
+          featureGrid: Array(height).fill(0).map(() => Array(width).fill(-1))
+        };
+        
+        // Populate coordinates and tile IDs
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const worldX = startX + x;
+            const worldY = startY + y;
+            
+            // Add to coordinates array (for compatibility)
+            this.selectedTiles.coordinates.push({ x: worldX, y: worldY });
+            
+            // Get tile IDs from both layers
+            if (this.grassLayer) {
+              const tile = this.grassLayer.getTileAt(worldX, worldY);
+              this.selectedTiles.tileGrid[y][x] = tile ? tile.index : -1;
             }
+            
+            if (this.featureLayer) {
+              const featureTile = this.featureLayer.getTileAt(worldX, worldY);
+              this.selectedTiles.featureGrid[y][x] = featureTile ? featureTile.index : -1;
+            }
+          }
         }
     }
 
     clearSelection(){
         this.isSelecting = false;
         this.selectionBox.clear();
-        this.selectedTiles = [];
+        this.selectionStart = new Phaser.Math.Vector2(0, 0);
+        this.selectionEnd = new Phaser.Math.Vector2(0, 0);
+        this.selectedTiles = {
+            coordinates: [],
+            dimensions: { width: 0, height: 0 },
+            tileGrid: [],
+            featureGrid: []
+        };
         console.log('Selection cleared');
     }
 
     getSelection(): generatorInput {
-        let w = Math.abs(this.selectionStart.x - this.selectionEnd.x) + 1;
-        let h = Math.abs(this.selectionStart.y - this.selectionEnd.y) + 1;
-
-        let grid: number[][] = [];
-        for (let i = 0; i < h; i++) {
-            grid[i] = new Array(w).fill(-1); 
-        }
-
         return {
-            grid: grid,
-            width: w,
-            height: h,
+          grid: this.selectedTiles.featureGrid.map(row => [...row]),
+          width: this.selectedTiles.dimensions.width,
+          height: this.selectedTiles.dimensions.height,
         };
     }
 
