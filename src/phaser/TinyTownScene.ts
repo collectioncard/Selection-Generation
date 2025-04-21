@@ -37,11 +37,6 @@ export class TinyTownScene extends Phaser.Scene {
     // set of tile indexes used for tile understanding
     private selectedTileSet = new Set<number>();
     private tileDictionary!: { [key: number]: string };
-    
-    // set of tile indexes used for tile understanding
-    private selectedTileSet = new Set<number>();
-    private tileDictionary!: { [key: number]: string };
-
 
     constructor() {
         super('TinyTown');
@@ -167,15 +162,14 @@ export class TinyTownScene extends Phaser.Scene {
         this.isSelecting = false;
         this.collectSelectedTiles();
         
-        // Logs the selected tiles for now
-
-        //Tile understanding: Given the tile indexes, return the descriptions based on the dictionary
-        console.log('Selected Tiles:', this.selectedTiles);
         // loop through selectedTileSet once it works
+        const selectedDescriptions = [];
         for (let tileID of this.selectedTileSet) {
             const description = this.tileDictionary[tileID];
-            console.log(`TileID ${tileID}: ${description}`);
+            selectedDescriptions.push({ tileID, description });
         }
+        // selectedDescriptions is all the unique tiles and their descriptions
+        console.log(selectedDescriptions);
     }
     
     drawSelectionBox() {
@@ -252,9 +246,9 @@ export class TinyTownScene extends Phaser.Scene {
 
             this.selectedTiles.combinedGrid[y][x] = (featureTileId !== -1) ? featureTileId : grassTileId;
 
-          }
-
-          
+            // create a set of unique tile ID to grab information from the tile dictionary
+            this.selectedTileSet.add((featureTileId !== -1) ? featureTileId : grassTileId);
+          }  
         }
     }
 
