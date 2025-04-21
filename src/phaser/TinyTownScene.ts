@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 
 import {Preload} from './Preload';
-import {houseGenerator} from "./featureGenerators/houseGenerator";
+import {HouseGenerator} from "./featureGenerators/houseGenerator";
 import {completedSection, generatorInput} from "./featureGenerators/GeneratorInterface.ts";
 
 interface TinyTownSceneData {
