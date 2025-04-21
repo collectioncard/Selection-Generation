@@ -38,6 +38,11 @@ export class TinyTownScene extends Phaser.Scene {
     private selectedTileSet = new Set<number>();
     private tileDictionary!: { [key: number]: string };
     
+    // set of tile indexes used for tile understanding
+    private selectedTileSet = new Set<number>();
+    private tileDictionary!: { [key: number]: string };
+
+
     constructor() {
         super('TinyTown');
     }
