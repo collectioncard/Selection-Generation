@@ -18,11 +18,13 @@ export class TinyTownScene extends Phaser.Scene {
         dimensions: { width: number; height: number };
         tileGrid: number[][];  // grass layer
         featureGrid: number[][]; // feature layer
+        combinedGrid: number[][]; // combined layer
       } = {
         coordinates: [],
         dimensions: { width: 0, height: 0 },
         tileGrid: [],
-        featureGrid: []
+        featureGrid: [],
+        combinedGrid: []
       };    
     private grassLayer : Phaser.Tilemaps.TilemapLayer | null = null;
     private featureLayer : Phaser.Tilemaps.TilemapLayer | null = null;
@@ -194,7 +196,8 @@ export class TinyTownScene extends Phaser.Scene {
           coordinates: [],
           dimensions: { width, height },
           tileGrid: Array(height).fill(0).map(() => Array(width).fill(-1)),
-          featureGrid: Array(height).fill(0).map(() => Array(width).fill(-1))
+          featureGrid: Array(height).fill(0).map(() => Array(width).fill(-1)),
+          combinedGrid: Array(height).fill(0).map(() => Array(width).fill(-1))
         };
         
         // Populate coordinates and tile IDs
@@ -203,19 +206,26 @@ export class TinyTownScene extends Phaser.Scene {
             const worldX = startX + x;
             const worldY = startY + y;
             
-            // Add to coordinates array (for compatibility)
+            // Add to coordinates array 
             this.selectedTiles.coordinates.push({ x: worldX, y: worldY });
             
             // Get tile IDs from both layers
+            let grassTileId = -1;
             if (this.grassLayer) {
               const tile = this.grassLayer.getTileAt(worldX, worldY);
-              this.selectedTiles.tileGrid[y][x] = tile ? tile.index : -1;
+              grassTileId = tile ? tile.index : -1;
+              this.selectedTiles.tileGrid[y][x] = grassTileId;
             }
             
+            let featureTileId = -1;
             if (this.featureLayer) {
               const featureTile = this.featureLayer.getTileAt(worldX, worldY);
-              this.selectedTiles.featureGrid[y][x] = featureTile ? featureTile.index : -1;
+              featureTileId = featureTile ? featureTile.index : -1;
+              this.selectedTiles.featureGrid[y][x] = featureTileId;
             }
+
+            this.selectedTiles.combinedGrid[y][x] = (featureTileId !== -1) ? featureTileId : grassTileId;
+
           }
         }
     }
@@ -229,7 +239,8 @@ export class TinyTownScene extends Phaser.Scene {
             coordinates: [],
             dimensions: { width: 0, height: 0 },
             tileGrid: [],
-            featureGrid: []
+            featureGrid: [],
+            combinedGrid: []
         };
         console.log('Selection cleared');
     }
