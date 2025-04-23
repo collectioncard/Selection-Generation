@@ -163,6 +163,7 @@ export class HouseGenerator implements FeatureGenerator {
     return {
       name: 'House',
       description: `${args?.style ?? 'A'} house with a ${isRedRoof ? 'red' : 'grey'} roof, ${doorCount} door(s), and ${windowCount} window(s)`,
+      type: 'house',
       grid,
       points_of_interest,
     };

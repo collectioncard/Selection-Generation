@@ -96,6 +96,7 @@ export class PartialFenceGenerator implements FeatureGenerator {
         return {
             name: 'broken_fence',
             description: 'A partially completed fence',
+            type: 'fence',
             grid,
             points_of_interest: new Map(),
         };

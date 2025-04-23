@@ -52,6 +52,15 @@ document.getElementById('all-selection')?.addEventListener('click', () => {
     }
 });
 
+// Clear tiles 
+
+document.getElementById('clear-tiles')?.addEventListener('click', () => {
+    const scene = getScene();
+    if (scene) {
+        scene.clearFeatureLayerInSelection();
+    }
+});
+
 // Clear selection button
 document.getElementById('clear-selection')?.addEventListener('click', () => {
     const scene = getScene();

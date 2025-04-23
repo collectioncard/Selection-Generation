@@ -87,6 +87,7 @@ export class FullFenceGenerator implements FeatureGenerator {
     return {
       name: 'fence',
       description: `A ${width}x${height} fence`,
+      type: 'fence',
       grid,
       points_of_interest: new Map(),
     };

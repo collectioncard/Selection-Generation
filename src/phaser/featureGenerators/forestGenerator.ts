@@ -154,6 +154,7 @@ export class ForestGenerator implements FeatureGenerator {
     return {
       name: 'forest',
       description: `A ${width}x${height} forest with custom elements`,
+      type: 'forest',
       grid,
       points_of_interest: new Map(),
     };

@@ -9,8 +9,7 @@ export class TinyTownScene extends Phaser.Scene {
     public readonly CANVAS_HEIGHT = 25; // ^^^
     
     ////DEBUG / FEATURE FLAGS////
-    private readonly allowOverwriting: boolean = true; // Allows LLM to overwrite placed tiles
-    
+    private readonly allowOverwriting: boolean = false; // Allows LLM to overwrite placed tiles
 
     // selection box properties
     private selectionBox!: Phaser.GameObjects.Graphics;
@@ -257,26 +256,170 @@ export class TinyTownScene extends Phaser.Scene {
         };
     }
 
-    putFeatureAtSelection(generatedData : completedSection){
-        let x = Math.min(this.selectionStart.x, this.selectionEnd.x);
-        let y = Math.min(this.selectionStart.y, this.selectionEnd.y);
+
+    putFeatureAtSelection(generatedData: completedSection) {
+        const x = Math.min(this.selectionStart.x, this.selectionEnd.x);
+        const y = Math.min(this.selectionStart.y, this.selectionEnd.y);
+      
+        this.putFeatureAt(x, y, generatedData);
+        this.clearSelection();
+    }
+      
+    public putFeatureAt(x: number, y: number, feature: completedSection) {
+        console.log(`[putFeatureAt] feature='${feature.name}', type='${feature.type}', origin=(${x},${y})`);
+        const layer = this.featureLayer!;
         
-        if(this.allowOverwriting){
-            this.featureLayer?.putTilesAt(generatedData.grid, x,y);
-        }else{
-            for (let row = 0; row < generatedData.grid.length; row++) {
-                for (let col = 0; col < generatedData.grid[row].length; col++) {
-                    const tileValue = generatedData.grid[row][col];
-                    if (tileValue !== -1) {
-                        const currentTile = this.featureLayer?.getTileAt(x + col, y + row);
-                        if (!currentTile || currentTile.index === -1) {
-                            this.featureLayer?.putTileAt(tileValue, x + col, y + row);
+        // Step 1: Create a simple lookup table for tree structures
+        const treeStructures = [
+            // Single trees
+            { baseIds: [3, 4], pattern: [{dx: 0, dy: 0}, {dx: 0, dy: 1}] }, // Top tile connects to bottom tile
+            
+            // 2x2 trees
+            { baseIds: [6, 9], pattern: [{dx: 0, dy: 0}, {dx: 1, dy: 0}, {dx: 0, dy: 1}, {dx: 1, dy: 1}] },
+            
+            // Cross trees
+            { baseIds: [7, 10], pattern: [{dx: 0, dy: 0}, {dx: 0, dy: 1}, {dx: -1, dy: 1}, {dx: 1, dy: 1}, {dx: 0, dy: 2}] }
+        ];
+        
+        // Step 2: First, identify tiles we need to remove
+        const tilesToClear = new Set<string>();
+        
+        // Add all positions where the new feature will have tiles
+        for (let ry = 0; ry < feature.grid.length; ry++) {
+            for (let rx = 0; rx < feature.grid[ry].length; rx++) {
+                if (feature.grid[ry][rx] !== -1) {
+                    const wx = x + rx;
+                    const wy = y + ry;
+                    tilesToClear.add(`${wx},${wy}`);
+                }
+            }
+        }
+        
+        // Step 3: Now look at existing tiles at those positions
+        // If we find a tree pattern, clear the entire tree
+        const processedPositions = new Set<string>();
+        
+        // Make a copy of the positions to clear
+        const initialPositions = [...tilesToClear];
+        
+        // Check each position for tree structures
+        for (const posKey of initialPositions) {
+            // Skip if we've already processed this position
+            if (processedPositions.has(posKey)) continue;
+            processedPositions.add(posKey);
+            
+            const [wx, wy] = posKey.split(',').map(Number);
+            const tile = layer.getTileAt(wx, wy);
+            if (!tile) continue;
+            
+            const tileId = tile.index;
+            
+            // Check if this is a tree base tile
+            for (const structure of treeStructures) {
+                if (structure.baseIds.includes(tileId)) {
+                    // Found a tree structure, add all of its positions to clear
+                    for (const offset of structure.pattern) {
+                        const treeX = wx + offset.dx;
+                        const treeY = wy + offset.dy;
+                        tilesToClear.add(`${treeX},${treeY}`);
+                    }
+                    break;
+                }
+                
+                // Also check if this is any part of the tree (not just the base)
+                // For each offset in the pattern, check if this tile could be that part
+                for (const offset of structure.pattern) {
+                    if (offset.dx === 0 && offset.dy === 0) continue; // Skip the base position
+                    
+                    // Calculate where the base would be if this is part of the structure
+                    const baseX = wx - offset.dx;
+                    const baseY = wy - offset.dy;
+                    
+                    const baseTile = layer.getTileAt(baseX, baseY);
+                    if (baseTile && structure.baseIds.includes(baseTile.index)) {
+                        // Found a tree where this is a part, add all positions
+                        for (const partOffset of structure.pattern) {
+                            const treeX = baseX + partOffset.dx;
+                            const treeY = baseY + partOffset.dy;
+                            tilesToClear.add(`${treeX},${treeY}`);
                         }
+                        break;
                     }
                 }
             }
         }
+        
+        // Step 4: Clear all the tiles
+        console.log(`[putFeatureAt] Clearing ${tilesToClear.size} tiles`);
+        for (const posKey of tilesToClear) {
+            const [cx, cy] = posKey.split(',').map(Number);
+            layer.removeTileAt(cx, cy);
+        }
+        
+        // Step 5: Place the new feature
+        for (let ry = 0; ry < feature.grid.length; ry++) {
+            for (let rx = 0; rx < feature.grid[ry].length; rx++) {
+                const tileVal = feature.grid[ry][rx];
+                if (tileVal !== -1) {
+                    layer.putTileAt(tileVal, x + rx, y + ry);
+                }
+            }
+        }
     }
+
+    // private getReplacementRules() {
+    //     return {
+    //         forest: { 
+    //             ids: [3, 4, 5, 6, 7, 8, 9, 10, 11, 15, 16, 17, 18, 19, 20, 21, 22, 23, 27, 28, 29, 30, 31, 32, 33, 34, 35], 
+    //             canReplace: [-1, 0, 1, 2, 27, 28, 29, 57, 94, 95, 106, 107, 130, 131] // Can replace empty, grass or decor
+    //         },
+    //         fence: { 
+    //             ids: [44, 45, 46, 56, 58, 68, 69, 70], 
+    //             canReplace: [-1, 0, 1, 2, 27, 28, 29, 57, 94, 95, 106, 107, 130, 131,
+    //                          3, 4, 5, 6, 7, 8, 9, 10, 11, 15, 16, 17, 18, 19, 20, 21, 22, 23, 30, 31, 32, 33, 34, 35] 
+    //             // Can replace empty, grass, decor, or forest
+    //         },
+    //         house: { 
+    //             ids: [48, 49, 50, 51, 52, 53, 54, 55, 60, 61, 62, 63, 64, 65, 66, 67, 
+    //                   72, 73, 74, 75, 76, 77, 78, 79, 84, 85, 86, 87, 88, 89, 90, 91], 
+    //             canReplace: [-1, 0, 1, 2, 27, 28, 29, 57, 94, 95, 106, 107, 130, 131,
+    //                          3, 4, 5, 6, 7, 8, 9, 10, 11, 15, 16, 17, 18, 19, 20, 21, 22, 23, 30, 31, 32, 33, 34, 35] 
+    //             // Can replace empty, grass, decor, or forest
+    //         },
+    //         decor: { 
+    //             ids: [27, 28, 29, 57, 94, 95, 106, 107, 130, 131], 
+    //             canReplace: [-1, 0, 1, 2] // Can replace empty or grass only
+    //         },
+    //     };
+    // }
+
+    /**
+     * Clears all tiles on the feature layer within the current selection
+     */
+    public clearFeatureLayerInSelection(): void {    
+
+        if (!this.featureLayer) {
+            console.warn('Feature layer not available');
+            return;
+        }
+        
+        const startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
+        const startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
+        const endX = Math.max(this.selectionStart.x, this.selectionEnd.x);
+        const endY = Math.max(this.selectionStart.y, this.selectionEnd.y);
+        
+        for (let y = startY; y <= endY; y++) {
+        for (let x = startX; x <= endX; x++) {
+            const tile = this.featureLayer.getTileAt(x, y);
+            if (tile) {
+            this.featureLayer.removeTileAt(x, y);
+            }
+        }
+        }
+        
+        console.log(`Cleared all tiles in selection`);
+    }
+
 }
 
 export function createGame(attachPoint: HTMLDivElement) {

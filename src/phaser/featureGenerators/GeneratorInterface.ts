@@ -15,6 +15,7 @@ export interface generatorInput {
 export interface completedSection {
     name: string;
     description: string;
+    type?: string;
     grid: number[][];
     points_of_interest: Map<string, mapCoords>;
 }

@@ -61,6 +61,7 @@ export class DecorGenerator implements FeatureGenerator {
     return {
       name: 'Decor',
       description: 'Just some random stuff',
+      type: 'decor',
       grid: grid,
       points_of_interest: new Map(),
     };
