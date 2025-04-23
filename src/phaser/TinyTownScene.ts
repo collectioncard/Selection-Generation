@@ -7,6 +7,10 @@ export class TinyTownScene extends Phaser.Scene {
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
     public readonly CANVAS_HEIGHT = 25; // ^^^
+    
+    ////DEBUG / FEATURE FLAGS////
+    private readonly allowOverwriting: boolean = true; // Allows LLM to overwrite placed tiles
+    
 
     // selection box properties
     private selectionBox!: Phaser.GameObjects.Graphics;
@@ -256,7 +260,22 @@ export class TinyTownScene extends Phaser.Scene {
     putFeatureAtSelection(generatedData : completedSection){
         let x = Math.min(this.selectionStart.x, this.selectionEnd.x);
         let y = Math.min(this.selectionStart.y, this.selectionEnd.y);
-        this.featureLayer?.putTilesAt(generatedData.grid, x,y);
+        
+        if(this.allowOverwriting){
+            this.featureLayer?.putTilesAt(generatedData.grid, x,y);
+        }else{
+            for (let row = 0; row < generatedData.grid.length; row++) {
+                for (let col = 0; col < generatedData.grid[row].length; col++) {
+                    const tileValue = generatedData.grid[row][col];
+                    if (tileValue !== -1) {
+                        const currentTile = this.featureLayer?.getTileAt(x + col, y + row);
+                        if (!currentTile || currentTile.index === -1) {
+                            this.featureLayer?.putTileAt(tileValue, x + col, y + row);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
