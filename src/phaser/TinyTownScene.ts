@@ -1,7 +1,12 @@
 import Phaser from 'phaser';
 
+import {Preload} from './Preload';
 import {HouseGenerator} from "./featureGenerators/houseGenerator";
 import {completedSection, generatorInput} from "./featureGenerators/GeneratorInterface.ts";
+
+interface TinyTownSceneData {
+    dict: { [key: number]: string };
+}
 
 export class TinyTownScene extends Phaser.Scene {
     private readonly SCALE = 1;
@@ -33,8 +38,18 @@ export class TinyTownScene extends Phaser.Scene {
     private grassLayer : Phaser.Tilemaps.TilemapLayer | null = null;
     private featureLayer : Phaser.Tilemaps.TilemapLayer | null = null;
 
+    // set of tile indexes used for tile understanding
+    private selectedTileSet = new Set<number>();
+    private tileDictionary!: { [key: number]: string };
+
     constructor() {
         super('TinyTown');
+    }
+
+    init(data: TinyTownSceneData) {
+        console.log(data);
+        this.tileDictionary = data.dict;
+        console.log(this.tileDictionary);
     }
 
     preload() {
@@ -151,9 +166,14 @@ export class TinyTownScene extends Phaser.Scene {
         this.isSelecting = false;
         this.collectSelectedTiles();
         
-        // Logs the selected tiles for now
-        console.log('Selected Tiles:', this.selectedTiles);
-        
+        // loop through selectedTileSet once it works
+        const selectedDescriptions = [];
+        for (let tileID of this.selectedTileSet) {
+            const description = this.tileDictionary[tileID];
+            selectedDescriptions.push({ tileID, description });
+        }
+        // selectedDescriptions is all the unique tiles and their descriptions
+        console.log(selectedDescriptions);
     }
     
     drawSelectionBox() {
@@ -230,7 +250,9 @@ export class TinyTownScene extends Phaser.Scene {
 
             this.selectedTiles.combinedGrid[y][x] = (featureTileId !== -1) ? featureTileId : grassTileId;
 
-          }
+            // create a set of unique tile ID to grab information from the tile dictionary
+            this.selectedTileSet.add((featureTileId !== -1) ? featureTileId : grassTileId);
+          }  
         }
     }
 
@@ -285,7 +307,7 @@ export function createGame(attachPoint: HTMLDivElement) {
         width: 640,
         height: 400,
         parent: attachPoint,
-        scene: [TinyTownScene]
+        scene: [Preload, TinyTownScene]
     };
 
     return new Phaser.Game(config);
