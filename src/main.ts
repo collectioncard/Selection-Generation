@@ -9,7 +9,7 @@ import { HouseGenerator } from './phaser/featureGenerators/houseGenerator.ts';
 import { FullFenceGenerator } from './phaser/featureGenerators/fullFenceGenerator.ts';
 import { PartialFenceGenerator } from './phaser/featureGenerators/partialFenceGenerator.ts';
 import { TilePlacer } from './phaser/simpleTools/placeTile.ts';
-import { FullUndo } from './phaser/simpleTools/Undo.ts';
+import { FullUndo } from './phaser/simpleTools/undo.ts';
 import { boxPlacer } from './phaser/simpleTools/placeBox.ts';
 import { boxClear } from './phaser/simpleTools/clear.ts';
 
@@ -59,6 +59,25 @@ document.getElementById('all-selection')?.addEventListener('click', () => {
     }
 });
 
+//Clear selected tiles button
+document.getElementById('clear-selected-tiles')?.addEventListener('click', () => {
+    const scene = getScene();
+    if (scene) {
+        const startX = Math.min(scene.selectionStart.x, scene.selectionEnd.x);
+        const startY = Math.min(scene.selectionStart.y, scene.selectionEnd.y);
+        const width = Math.abs(scene.selectionEnd.x - scene.selectionStart.x);
+        const height = Math.abs(scene.selectionEnd.y - scene.selectionStart.y);
+        
+        // Use the clear generator from your generators object
+        generators.clear.toolCall.invoke({
+            x: startX,
+            y: startY,
+            width: width,
+            height: height
+        });
+    }
+});
+
 // Clear selection button
 document.getElementById('clear-selection')?.addEventListener('click', () => {
     const scene = getScene();
@@ -66,7 +85,7 @@ document.getElementById('clear-selection')?.addEventListener('click', () => {
         scene.clearSelection();
     }
 });
-// Clear selection button
+// Get selection button
 document.getElementById('get-Coords')?.addEventListener('click', () => {
     const scene = getScene();
     if (scene) {

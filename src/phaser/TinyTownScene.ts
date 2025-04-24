@@ -195,7 +195,7 @@ export class TinyTownScene extends Phaser.Scene {
         const endY = Math.max(this.selectionStart.y, this.selectionEnd.y);
         
         // Draw a semi-transparent rectangle
-        this.selectionBox.fillStyle(0x00ff00, 0.3);
+        this.selectionBox.fillStyle(0xFF5555, 0.3);
         this.selectionBox.fillRect(
             startX * 16 * this.SCALE, 
             startY * 16 * this.SCALE, 
@@ -204,7 +204,7 @@ export class TinyTownScene extends Phaser.Scene {
         );
         
         // Draw a border
-        this.selectionBox.lineStyle(2, 0x00ff00, 1);
+        this.selectionBox.lineStyle(2, 0xFF5555, 1);
         this.selectionBox.strokeRect(
             startX * 16 * this.SCALE, 
             startY * 16 * this.SCALE, 
