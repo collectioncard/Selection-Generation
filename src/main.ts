@@ -47,6 +47,13 @@ Object.values(generators).forEach(generator => {
 //I'll be sad if anyone removes my funny faces. They bring me joy when stuff doesn't work - Thomas
 document.title = "Selection Generation " + getRandEmoji();
 
+document.getElementById('all-selection')?.addEventListener('click', () => {
+    const scene = getScene();
+    if (scene) {
+        scene.setSelectionCoordinates(0,0,scene.CANVAS_WIDTH, scene.CANVAS_HEIGHT);
+    }
+});
+
 // Clear selection button
 document.getElementById('clear-selection')?.addEventListener('click', () => {
     const scene = getScene();
@@ -56,6 +63,6 @@ document.getElementById('clear-selection')?.addEventListener('click', () => {
 });
 
 function getRandEmoji(): string {
-    let emoji = [':)', ':(', '>:(', ':D', '>:D', ':^D', ':(', ':D', 'O_O', ':P', '-_-', 'O_-', 'O_o', '𓆉', 'ジ', '⊂(◉‿◉)つ', '	(｡◕‿‿◕｡)', '(⌐■_■)', '<|°_°|>', '<|^.^|>', ':P', ':>', ':C', ':}', ':/'];
+    let emoji = [':)', ':(', '>:(', ':D', '>:D', ':^D', ':(', ':D', 'O_O', ':P', '-_-', 'O_-', 'O_o', '𓆉', 'ジ', '⊂(◉‿◉)つ', '	(｡◕‿‿◕｡)', '(⌐■_■)', '<|°_°|>', '<|^.^|>', ':P', ':>', ':C', ':}', ':/', 'ʕ ● ᴥ ●ʔ','(˶ᵔ ᵕ ᵔ˶)'];
     return emoji[Math.floor(Math.random() * emoji.length)];
 }

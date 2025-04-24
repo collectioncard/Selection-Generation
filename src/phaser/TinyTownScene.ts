@@ -5,16 +5,31 @@ import {completedSection, generatorInput} from "./featureGenerators/GeneratorInt
 
 export class TinyTownScene extends Phaser.Scene {
     private readonly SCALE = 1;
-    private readonly CANVAS_WIDTH = 40;  //Size in tiles
-    private readonly CANVAS_HEIGHT = 25; // ^^^
+    public readonly CANVAS_WIDTH = 40;  //Size in tiles
+    public readonly CANVAS_HEIGHT = 25; // ^^^
+    
+    ////DEBUG / FEATURE FLAGS////
+    private readonly allowOverwriting: boolean = true; // Allows LLM to overwrite placed tiles
+    
 
     // selection box properties
     private selectionBox!: Phaser.GameObjects.Graphics;
     private selectionStart!: Phaser.Math.Vector2;
     private selectionEnd!: Phaser.Math.Vector2;
     private isSelecting: boolean = false;
-    private selectedTiles: { x: number; y: number }[] = [];
-    
+    private selectedTiles: {
+        coordinates: { x: number; y: number }[];  
+        dimensions: { width: number; height: number };
+        tileGrid: number[][];  // grass layer
+        featureGrid: number[][]; // feature layer
+        combinedGrid: number[][]; // combined layer
+      } = {
+        coordinates: [],
+        dimensions: { width: 0, height: 0 },
+        tileGrid: [],
+        featureGrid: [],
+        combinedGrid: []
+      };    
     private grassLayer : Phaser.Tilemaps.TilemapLayer | null = null;
     private featureLayer : Phaser.Tilemaps.TilemapLayer | null = null;
 
@@ -92,6 +107,28 @@ export class TinyTownScene extends Phaser.Scene {
             this.drawSelectionBox();
         }
     }
+    setSelectionCoordinates(x: number, y: number, w: number, h: number): void {
+        const endX = x + w - 1;
+        const endY = y + h - 1;
+
+        if (w >= 1 && h >= 1 &&
+            x >= 0 && x < this.CANVAS_WIDTH &&
+            y >= 0 && y < this.CANVAS_HEIGHT &&
+            endX >= 0 && endX < this.CANVAS_WIDTH &&
+            endY >= 0 && endY < this.CANVAS_HEIGHT)
+        {
+            this.isSelecting = true;
+            this.selectionStart = new Phaser.Math.Vector2(x, y);
+
+            this.selectionEnd = new Phaser.Math.Vector2(endX, endY);
+            this.drawSelectionBox();
+            
+            this.endSelection();
+        } else {
+            console.warn(`Invalid selection coordinates provided: x=${x}, y=${y}, w=${w}, h=${h}. Selection not set.`);
+        }
+    }
+
     
     updateSelection(pointer: Phaser.Input.Pointer): void {
         if (!this.isSelecting) return;
@@ -150,47 +187,95 @@ export class TinyTownScene extends Phaser.Scene {
     }
     
     collectSelectedTiles() {
-        this.selectedTiles = [];
-        
         const startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
         const startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
         const endX = Math.max(this.selectionStart.x, this.selectionEnd.x);
         const endY = Math.max(this.selectionStart.y, this.selectionEnd.y);
         
-        for (let y = startY; y <= endY; y++) {
-            for (let x = startX; x <= endX; x++) {
-                this.selectedTiles.push({ x, y });
+        const width = endX - startX + 1;
+        const height = endY - startY + 1;
+        
+        // Reset the selectedTiles
+        this.selectedTiles = {
+          coordinates: [],
+          dimensions: { width, height },
+          tileGrid: Array(height).fill(0).map(() => Array(width).fill(-1)),
+          featureGrid: Array(height).fill(0).map(() => Array(width).fill(-1)),
+          combinedGrid: Array(height).fill(0).map(() => Array(width).fill(-1))
+        };
+        
+        // Populate coordinates and tile IDs
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const worldX = startX + x;
+            const worldY = startY + y;
+            
+            // Add to coordinates array 
+            this.selectedTiles.coordinates.push({ x: worldX, y: worldY });
+            
+            // Get tile IDs from both layers
+            let grassTileId = -1;
+            if (this.grassLayer) {
+              const tile = this.grassLayer.getTileAt(worldX, worldY);
+              grassTileId = tile ? tile.index : -1;
+              this.selectedTiles.tileGrid[y][x] = grassTileId;
             }
+            
+            let featureTileId = -1;
+            if (this.featureLayer) {
+              const featureTile = this.featureLayer.getTileAt(worldX, worldY);
+              featureTileId = featureTile ? featureTile.index : -1;
+              this.selectedTiles.featureGrid[y][x] = featureTileId;
+            }
+
+            this.selectedTiles.combinedGrid[y][x] = (featureTileId !== -1) ? featureTileId : grassTileId;
+
+          }
         }
     }
 
     clearSelection(){
         this.isSelecting = false;
         this.selectionBox.clear();
-        this.selectedTiles = [];
+        this.selectionStart = new Phaser.Math.Vector2(0, 0);
+        this.selectionEnd = new Phaser.Math.Vector2(0, 0);
+        this.selectedTiles = {
+            coordinates: [],
+            dimensions: { width: 0, height: 0 },
+            tileGrid: [],
+            featureGrid: [],
+            combinedGrid: []
+        };
         console.log('Selection cleared');
     }
 
     getSelection(): generatorInput {
-        let w = Math.abs(this.selectionStart.x - this.selectionEnd.x) + 1;
-        let h = Math.abs(this.selectionStart.y - this.selectionEnd.y) + 1;
-
-        let grid: number[][] = [];
-        for (let i = 0; i < h; i++) {
-            grid[i] = new Array(w).fill(-1); 
-        }
-
         return {
-            grid: grid,
-            width: w,
-            height: h,
+          grid: this.selectedTiles.featureGrid.map(row => [...row]),
+          width: this.selectedTiles.dimensions.width,
+          height: this.selectedTiles.dimensions.height,
         };
     }
 
     putFeatureAtSelection(generatedData : completedSection){
         let x = Math.min(this.selectionStart.x, this.selectionEnd.x);
         let y = Math.min(this.selectionStart.y, this.selectionEnd.y);
-        this.featureLayer?.putTilesAt(generatedData.grid, x,y);
+        
+        if(this.allowOverwriting){
+            this.featureLayer?.putTilesAt(generatedData.grid, x,y);
+        }else{
+            for (let row = 0; row < generatedData.grid.length; row++) {
+                for (let col = 0; col < generatedData.grid[row].length; col++) {
+                    const tileValue = generatedData.grid[row][col];
+                    if (tileValue !== -1) {
+                        const currentTile = this.featureLayer?.getTileAt(x + col, y + row);
+                        if (!currentTile || currentTile.index === -1) {
+                            this.featureLayer?.putTileAt(tileValue, x + col, y + row);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
