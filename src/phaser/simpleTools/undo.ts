@@ -19,8 +19,11 @@ export class FullUndo implements FeatureGenerator {
         return "Tool Failed, no reference to scene."
       }
       console.log("last data" + scene.LastData)
+
+      // the way that the undo works is that it replaces the whole map with a save state
+      // in effect it puts the whole previous map onto the map.
       scene.putFeatureAtSelection(scene.LastData, true, true);
-      return `undid last task`;
+      return `undid last task`; // this is how the LLM knows that the last action was an undo.
     },
     {
       name: "undo",
@@ -29,14 +32,14 @@ export class FullUndo implements FeatureGenerator {
       description: "Undoes the last action.",
     }
   );
+
+  // this is not used.
   generate(mapSection: generatorInput, _args?: any): completedSection {
     let grid: number[][] = mapSection.grid;
-    const decorTile = _args[2];
-    grid[_args[1]][_args[0]] = Number(decorTile);
 
     return {
-      name: 'PlaceTile',
-      description: 'places a tile at the specified location',
+      name: 'Undo - None',
+      description: '',
       grid: grid,
       points_of_interest: new Map(),
     };

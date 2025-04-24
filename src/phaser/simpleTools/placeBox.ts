@@ -36,15 +36,17 @@ export class boxPlacer implements FeatureGenerator {
     }
   );
 
+  // args correlate to [x, y, width, height, tileID, filled]
   generate(mapSection: generatorInput, _args?: any): completedSection {
     let grid: number[][] = mapSection.grid;
-    const decorTile = _args[4];
+
+    const tileID = _args[4]; // get the tile id
     for(let i = 0; i < _args[3]; i++){
       for(let j = 0; j < _args[2]; j++){
         if(_args[5]){
-          grid[_args[1] + i][_args[0] + j] = Number(decorTile);
+          grid[_args[1] + i][_args[0] + j] = Number(tileID);
         } else if (i == 0 || i == _args[3]-1 || j == 0 || j == _args[2]-1){
-          grid[_args[1] + i][_args[0] + j] = Number(decorTile);
+          grid[_args[1] + i][_args[0] + j] = Number(tileID);
         }
       }
     }

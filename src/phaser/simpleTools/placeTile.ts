@@ -33,10 +33,12 @@ export class TilePlacer implements FeatureGenerator {
     }
   );
 
+  // args is [x, y, tileID]
   generate(mapSection: generatorInput, _args?: any): completedSection {
     let grid: number[][] = mapSection.grid;
-    const decorTile = _args[2];
-    grid[_args[1]][_args[0]] = Number(decorTile);
+
+    const tileID = _args[2];
+    grid[_args[1]][_args[0]] = Number(tileID);
 
     return {
       name: 'PlaceTile',
