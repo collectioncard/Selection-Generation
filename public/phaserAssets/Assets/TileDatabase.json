@@ -1,5 +1,6 @@
 {
   "Tilemap_Packed_Tileset": [
+    { "TileID": -1, "Description": "Nothingness" },
     { "TileID": 0, "Description": "Grass tile with no visible grass." },
     { "TileID": 1, "Description": "Grass tile with visible grass." },
     { "TileID": 2, "Description": "Grass tile with visible grass and flowers." },

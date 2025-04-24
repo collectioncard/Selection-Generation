@@ -7,6 +7,11 @@ const MIN_HOUSE_WIDTH = 3;
 const MIN_HOUSE_HEIGHT = 3;
 const BORDER_PADDING = 1;
 
+var lastHouseX = 0; // Global variable to store the house X position
+var lastHouseY = 0; // Global variable to store the house Y position
+var lastHouseWidth = 0; // Global variable to store the house X position
+var lastHouseHeight = 0; // Global variable to store the house Y position
+
 const HOUSE_TILES = {
   // Roofs
   48: 'grey roof tile',
@@ -58,6 +63,8 @@ export class HouseGenerator implements FeatureGenerator {
 
   static houseArgsSchema = z.object({
     style: z.enum(["brown", "grey"]).optional(),
+    x: z.number().optional(),
+    y: z.number().optional(),
     width: z.number().min(3).max(20).optional(),
     height: z.number().min(3).max(20).optional(),
     roof: z.enum(["red", "grey"]).optional(),
@@ -71,8 +78,9 @@ export class HouseGenerator implements FeatureGenerator {
       const scene = this.sceneGetter();
       if (!scene) return "Tool Failed: No reference to scene.";
       const selection = scene.getSelection();
-      scene.putFeatureAtSelection(this.generate(selection, args));
-      return "House added.";
+      var tmp = this.generate(selection, args)
+      scene.putFeatureAtSelection(tmp);
+      return "House added. at: " + lastHouseX + ", " + lastHouseY + ". the connection point is at: " + lastHouseX+Math.floor(lastHouseWidth/2) + ", " + lastHouseY+lastHouseHeight+1;
     },
     {
       name: "house",
@@ -83,12 +91,15 @@ export class HouseGenerator implements FeatureGenerator {
 
   generate(mapSection: generatorInput, args?: z.infer<typeof HouseGenerator.houseArgsSchema>): completedSection {
     const grid = mapSection.grid;
-
+    
     const houseWidth = args?.width ?? Phaser.Math.Between(MIN_HOUSE_WIDTH, mapSection.width - BORDER_PADDING * 2);
     const houseHeight = args?.height ?? Phaser.Math.Between(MIN_HOUSE_HEIGHT, mapSection.height - BORDER_PADDING * 2);
-    const houseX = Phaser.Math.Between(BORDER_PADDING, mapSection.width - houseWidth - BORDER_PADDING);
-    const houseY = Phaser.Math.Between(BORDER_PADDING, mapSection.height - houseHeight - BORDER_PADDING);
-
+    const houseX = args?.x ?? Phaser.Math.Between(BORDER_PADDING, mapSection.width - houseWidth - BORDER_PADDING);
+    const houseY = args?.y ?? Phaser.Math.Between(BORDER_PADDING, mapSection.height - houseHeight - BORDER_PADDING);
+    lastHouseX = houseX; // Store the last house X position
+    lastHouseY = houseY; // Store the last house Y position
+    lastHouseWidth = houseWidth; // Store the last house X position
+    lastHouseHeight = houseHeight; // Store the last house Y position
     // Determine style
     let wallTextureOffset: -4 | 0 = Math.random() < 0.5 ? -4 : 0;
     if (args?.style === 'brown') wallTextureOffset = -4;

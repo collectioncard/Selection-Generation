@@ -13,7 +13,7 @@ document.querySelector('#llm-chat-form')!.addEventListener('submit', async funct
     event.preventDefault();
 
     const userInputField: HTMLInputElement = document.querySelector('#llm-chat-input')!;
-    const userMessage = userInputField.value.trim();
+    var userMessage = userInputField.value.trim();
     if (!userMessage) return;
     userInputField.value = '';
 

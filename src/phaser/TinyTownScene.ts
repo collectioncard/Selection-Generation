@@ -14,13 +14,13 @@ export class TinyTownScene extends Phaser.Scene {
     public readonly CANVAS_HEIGHT = 25; // ^^^
     
     ////DEBUG / FEATURE FLAGS////
-    private readonly allowOverwriting: boolean = true; // Allows LLM to overwrite placed tiles
+    private readonly allowOverwriting: boolean = false; // Allows LLM to overwrite placed tiles
     
 
     // selection box properties
     private selectionBox!: Phaser.GameObjects.Graphics;
-    private selectionStart!: Phaser.Math.Vector2;
-    private selectionEnd!: Phaser.Math.Vector2;
+    public selectionStart!: Phaser.Math.Vector2;
+    public selectionEnd!: Phaser.Math.Vector2;
     private isSelecting: boolean = false;
     private selectedTiles: {
         coordinates: { x: number; y: number }[];  
@@ -40,7 +40,14 @@ export class TinyTownScene extends Phaser.Scene {
 
     // set of tile indexes used for tile understanding
     private selectedTileSet = new Set<number>();
-    private tileDictionary!: { [key: number]: string };
+    public tileDictionary!: { [key: number]: string };
+
+    public LastData: completedSection = {
+        name: 'DefaultSelection',
+        description: 'Full Default',
+        grid: [],
+        points_of_interest: new Map(),
+    };
 
     constructor() {
         super('TinyTown');
@@ -279,17 +286,43 @@ export class TinyTownScene extends Phaser.Scene {
         };
     }
 
-    putFeatureAtSelection(generatedData : completedSection){
+    putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false){
+        console.group("putFeatureAtSelection")
+        console.log("generatedData");
+        console.log(generatedData);
         let x = Math.min(this.selectionStart.x, this.selectionEnd.x);
         let y = Math.min(this.selectionStart.y, this.selectionEnd.y);
-        
+        if(worldOverride)
+        {
+            x = 0;
+            y = 0;
+        }
+        this.LastData = structuredClone(generatedData)
+        this.LastData.grid = Array(this.CANVAS_HEIGHT).fill(0).map(() => Array(this.CANVAS_WIDTH).fill(-1));
+        var tempGrid = this.featureLayer?.getTilesWithin(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
+        console.log("tempGrid");
+        console.log(tempGrid);
+        for (var tile of tempGrid || []){
+            if (tile.index != -1){
+                this.LastData.grid[tile.y][tile.x] = tile.index;
+            }
+        }
+        console.log("this.LastData");
+        console.log(this.LastData);
         if(this.allowOverwriting){
             this.featureLayer?.putTilesAt(generatedData.grid, x,y);
         }else{
             for (let row = 0; row < generatedData.grid.length; row++) {
                 for (let col = 0; col < generatedData.grid[row].length; col++) {
                     const tileValue = generatedData.grid[row][col];
-                    if (tileValue !== -1) {
+                    if (acceptneg) {
+                        this.featureLayer?.putTileAt(tileValue,x + col, y + row);
+                    }
+                    else if (tileValue !== -1) {
+                        if(tileValue == -2){
+                            this.featureLayer?.putTileAt(-1,x + col, y + row);
+                            continue;
+                        }
                         const currentTile = this.featureLayer?.getTileAt(x + col, y + row);
                         if (!currentTile || currentTile.index === -1) {
                             this.featureLayer?.putTileAt(tileValue, x + col, y + row);
@@ -298,6 +331,7 @@ export class TinyTownScene extends Phaser.Scene {
                 }
             }
         }
+        console.groupEnd()
     }
 }
 

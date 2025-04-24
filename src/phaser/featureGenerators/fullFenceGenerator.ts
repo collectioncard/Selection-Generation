@@ -4,7 +4,10 @@ import { z } from "zod";
 import { TinyTownScene } from '../TinyTownScene';
 
 const PADDING = 1;
-
+var fenceX = 0; 
+var fenceY = 0; 
+var width = 0; 
+var height = 0; 
 const tileIDs: Record<number, number> = {
   0b1100: 44, // Top-left
   0b0110: 46, // Top-right
@@ -39,7 +42,7 @@ export class FullFenceGenerator implements FeatureGenerator {
 
       const selection = scene.getSelection();
       scene.putFeatureAtSelection(this.generate(selection, args));
-      return "Fence added successfully";
+      return "Fence added successfully. It starts at" + fenceX + "," + fenceY + ". It has a with width: " + width + " and height: " + height;
     },
     {
       name: "fence",
@@ -53,14 +56,14 @@ export class FullFenceGenerator implements FeatureGenerator {
       Array(mapSection.width).fill(-1)
     );
 
-    const width = args?.width ?? Phaser.Math.Between(3, mapSection.width - PADDING * 2);
-    const height = args?.height ?? Phaser.Math.Between(3, mapSection.height - PADDING * 2);
+    width = args?.width ?? Phaser.Math.Between(3, mapSection.width - PADDING * 2);
+    height = args?.height ?? Phaser.Math.Between(3, mapSection.height - PADDING * 2);
 
-    const fenceX = Phaser.Math.Between(
+    fenceX = Phaser.Math.Between(
       PADDING,
       mapSection.width - width - PADDING
     );
-    const fenceY = Phaser.Math.Between(
+    fenceY = Phaser.Math.Between(
       PADDING,
       mapSection.height - height - PADDING
     );

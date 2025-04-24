@@ -3,7 +3,7 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { TinyTownScene } from '../TinyTownScene';
 
-export class TilePlacer implements FeatureGenerator {
+export class FullUndo implements FeatureGenerator {
     sceneGetter: () => TinyTownScene;
 
     constructor(sceneGetter: () => TinyTownScene) {
@@ -11,28 +11,24 @@ export class TilePlacer implements FeatureGenerator {
     }
 
   toolCall = tool(
-    async ({x, y, tileID}) => {
-      console.log("Adding tile at: ", x, y, tileID);
+    async ({}) => {
+      console.log("undoing last task");
       let scene = this.sceneGetter();
       if(scene == null){
         console.log("getSceneFailed")
         return "Tool Failed, no reference to scene."
       }
-      let selection = scene.getSelection()
-      scene.putFeatureAtSelection(this.generate(selection, [x, y, tileID]));
-      return `placed ${tileID} at: ${[x,y]}`;
+      console.log("last data" + scene.LastData)
+      scene.putFeatureAtSelection(scene.LastData, true, true);
+      return `undid last task`;
     },
     {
-      name: "add",
+      name: "undo",
       schema: z.object({
-        x: z.number(),
-        y: z.number(),
-        tileID: z.string(),
       }),
-      description: "Adds a tile to the map.",
+      description: "Undoes the last action.",
     }
   );
-
   generate(mapSection: generatorInput, _args?: any): completedSection {
     let grid: number[][] = mapSection.grid;
     const decorTile = _args[2];
@@ -44,5 +40,5 @@ export class TilePlacer implements FeatureGenerator {
       grid: grid,
       points_of_interest: new Map(),
     };
-  };
+  }
 };

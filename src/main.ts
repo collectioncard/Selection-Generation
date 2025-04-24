@@ -9,6 +9,9 @@ import { HouseGenerator } from './phaser/featureGenerators/houseGenerator.ts';
 import { FullFenceGenerator } from './phaser/featureGenerators/fullFenceGenerator.ts';
 import { PartialFenceGenerator } from './phaser/featureGenerators/partialFenceGenerator.ts';
 import { TilePlacer } from './phaser/simpleTools/placeTile.ts';
+import { FullUndo } from './phaser/simpleTools/Undo.ts';
+import { boxPlacer } from './phaser/simpleTools/placeBox.ts';
+import { boxClear } from './phaser/simpleTools/clear.ts';
 
 let gameInstance: Phaser.Game | null = null;
 
@@ -16,7 +19,6 @@ export function getScene(): TinyTownScene {
     if (!gameInstance) throw Error("Scene does not exist >:(")
     return gameInstance.scene.getScene('TinyTown') as TinyTownScene;
 }
-
 
 gameInstance = await createGame(document.getElementById('map') as HTMLDivElement);
 
@@ -35,7 +37,10 @@ const generators = {
     house: new HouseGenerator(getScene),
     full_fence: new FullFenceGenerator(getScene),
     partial_fence: new PartialFenceGenerator(getScene),
-    tile_placer: new TilePlacer(getScene)
+    tile_placer: new TilePlacer(getScene),
+    undo: new FullUndo(getScene),
+    box: new boxPlacer(getScene),
+    clear: new boxClear(getScene),
 }
 
 Object.values(generators).forEach(generator => {
@@ -59,6 +64,19 @@ document.getElementById('clear-selection')?.addEventListener('click', () => {
     const scene = getScene();
     if (scene) {
         scene.clearSelection();
+    }
+});
+// Clear selection button
+document.getElementById('get-Coords')?.addEventListener('click', () => {
+    const scene = getScene();
+    if (scene) {
+        console.log("Selection Start: ", scene.selectionStart, " Selection End: ", scene.selectionEnd);
+        var text = "[Selection Starts at: (" + scene.selectionStart.x + ", " + scene.selectionStart.y + "). Selection Ends at: (" + scene.selectionEnd.x + ", " + scene.selectionEnd.y + ").]";
+        navigator.clipboard.writeText(text).then(() => {
+            console.log('Text copied to clipboard:', text);
+        }).catch(err => {
+            console.error('Error copying text: ', err);
+        });
     }
 });
 
