@@ -185,14 +185,18 @@ export class TinyTownScene extends Phaser.Scene {
     
     drawSelectionBox() {
         this.selectionBox.clear();
-        
+
         if (!this.isSelecting) return;
-        
+
         // Calculate the bounds of the selection
         const startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
         const startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
         const endX = Math.max(this.selectionStart.x, this.selectionEnd.x);
         const endY = Math.max(this.selectionStart.y, this.selectionEnd.y);
+
+        const width = endX - startX + 1;
+        const height = endY - startY + 1;
+
         
         // Draw a semi-transparent rectangle
         this.selectionBox.fillStyle(0xFF5555, 0.3);
@@ -202,15 +206,50 @@ export class TinyTownScene extends Phaser.Scene {
             (endX - startX + 1) * 16 * this.SCALE, 
             (endY - startY + 1) * 16 * this.SCALE
         );
-        
-        // Draw a border
+
+        // Draw a dashed border
         this.selectionBox.lineStyle(2, 0xFF5555, 1);
-        this.selectionBox.strokeRect(
-            startX * 16 * this.SCALE, 
-            startY * 16 * this.SCALE, 
-            (endX - startX + 1) * 16 * this.SCALE, 
-            (endY - startY + 1) * 16 * this.SCALE
-        );
+        this.selectionBox.beginPath();
+        const dashLength = 8; // Length of each dash
+        const gapLength = 4;  // Length of each gap
+
+        // Top border
+        for (let i = 0; i < width * 16 * this.SCALE; i += dashLength + gapLength) {
+            this.selectionBox.moveTo(startX * 16 * this.SCALE + i, startY * 16 * this.SCALE);
+            this.selectionBox.lineTo(
+                Math.min(startX * 16 * this.SCALE + i + dashLength, endX * 16 * this.SCALE + 16 * this.SCALE),
+                startY * 16 * this.SCALE
+            );
+        }
+
+        // Bottom border
+        for (let i = 0; i < width * 16 * this.SCALE; i += dashLength + gapLength) {
+            this.selectionBox.moveTo(startX * 16 * this.SCALE + i, endY * 16 * this.SCALE + 16 * this.SCALE);
+            this.selectionBox.lineTo(
+                Math.min(startX * 16 * this.SCALE + i + dashLength, endX * 16 * this.SCALE + 16 * this.SCALE),
+                endY * 16 * this.SCALE + 16 * this.SCALE
+            );
+        }
+
+        // Left border
+        for (let i = 0; i < height * 16 * this.SCALE; i += dashLength + gapLength) {
+            this.selectionBox.moveTo(startX * 16 * this.SCALE, startY * 16 * this.SCALE + i);
+            this.selectionBox.lineTo(
+                startX * 16 * this.SCALE,
+                Math.min(startY * 16 * this.SCALE + i + dashLength, endY * 16 * this.SCALE + 16 * this.SCALE)
+            );
+        }
+
+        // Right border
+        for (let i = 0; i < height * 16 * this.SCALE; i += dashLength + gapLength) {
+            this.selectionBox.moveTo(endX * 16 * this.SCALE + 16 * this.SCALE, startY * 16 * this.SCALE + i);
+            this.selectionBox.lineTo(
+                endX * 16 * this.SCALE + 16 * this.SCALE,
+                Math.min(startY * 16 * this.SCALE + i + dashLength, endY * 16 * this.SCALE + 16 * this.SCALE)
+            );
+        }
+
+        this.selectionBox.strokePath();
     }
     
     collectSelectedTiles() {
