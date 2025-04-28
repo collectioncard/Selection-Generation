@@ -65,13 +65,6 @@ document.getElementById('all-selection')?.addEventListener('click', () => {
     }
 });
 
-// Name Selection
-document.getElementById('name-selection')?.addEventListener('click', () => {
-    const scene = getScene();
-    const name = window.prompt('Enter a name for this area:');
-    if (name) scene.nameSelection(name);
-});
-
 //Clear selected tiles button
 document.getElementById('clear-selected-tiles')?.addEventListener('click', () => {
     const scene = getScene();
@@ -98,6 +91,7 @@ document.getElementById('clear-selection')?.addEventListener('click', () => {
         scene.clearSelection();
     }
 });
+
 // Get selection button
 document.getElementById('get-Coords')?.addEventListener('click', () => {
     const scene = getScene();
@@ -111,6 +105,35 @@ document.getElementById('get-Coords')?.addEventListener('click', () => {
         });
     }
 });
+
+const dropdown = document.getElementById('layer-dropdown') as HTMLSelectElement;
+if (dropdown) {
+  // show placeholder
+  dropdown.value = '';
+
+  dropdown.addEventListener('change', () => {
+    const s = getScene();
+    const val = dropdown.value;
+    if (val === '__new__') {
+      // name a new selection
+      const name = window.prompt('Enter a name for this selection:');
+      if (!name) {
+        dropdown.value = '';
+        return;
+      }
+      s.nameSelection(name);
+      // add to dropdown
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.text   = name;
+      dropdown.add(opt);
+      dropdown.value = name;
+    } else {
+      // re-select an existing layer
+      s.selectLayer(val);
+    }
+  });
+}
 
 function getRandEmoji(): string {
     let emoji = [':)', ':(', '>:(', ':D', '>:D', ':^D', ':(', ':D', 'O_O', ':P', '-_-', 'O_-', 'O_o', '𓆉', 'ジ', '⊂(◉‿◉)つ', '	(｡◕‿‿◕｡)', '(⌐■_■)', '<|°_°|>', '<|^.^|>', ':P', ':>', ':C', ':}', ':/', 'ʕ ● ᴥ ●ʔ','(˶ᵔ ᵕ ᵔ˶)'];
