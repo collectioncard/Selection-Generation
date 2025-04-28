@@ -3,25 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/icons/mushroom.png">
     <title>Selection Generation</title>
   </head>
   <body>
   <div id="control-buttons">
     <div>
-      <button>b1</button>
+      <button id="get-Coords">Get Selection</button>
       <button>b2</button>
       <button>b3</button>
       <button>b4</button>
-      <button>b5</button>
-      <button>b6</button>
+      <div id="selection-controls">
+        <button id="all-selection">Select All</button>
+        <button id="clear-selected-tiles">Clear Tiles</button>
+        <button id="clear-selection">Clear Selection</button>
+      </div>
     </div>
   </div>
-  <div id="map-container">
     <div id="map"></div>
-    <div id="selection-controls">
-      <button id="clear-selection">Clear Selection</button>
-    </div>
-  </div>
   <div id="llm-chat">
     <div>
       <ul id="chat-history"></ul>

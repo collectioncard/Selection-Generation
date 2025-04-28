@@ -1,3 +1,5 @@
+import { TinyTownScene } from "../TinyTownScene";
+
 export interface mapCoords {
   x: number;
   y: number;
@@ -18,6 +20,8 @@ export interface completedSection {
 }
 
 export interface FeatureGenerator {
+    sceneGetter: () => TinyTownScene;
+    toolCall ?: any;
     generate(mapSection: generatorInput, args?: any): completedSection;
 }
 

@@ -1,6 +1,9 @@
 import {completedSection, FeatureGenerator, generatorInput} from './GeneratorInterface';
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
+import { TinyTownScene } from '../TinyTownScene';
 
-const DECOR_CHANCE = 0.03;
+const DECOR_CHANCE = 0.05;
 
 const DECOR_TILES = {
   27: 'orange tree',
@@ -15,7 +18,34 @@ const DECOR_TILES = {
   131: 'bucket full',
 };
 
-export const decorGenerator: FeatureGenerator = {
+export class DecorGenerator implements FeatureGenerator {
+    sceneGetter: () => TinyTownScene;
+
+    constructor(sceneGetter: () => TinyTownScene) {
+        this.sceneGetter = sceneGetter;
+    }
+
+  toolCall = tool(
+    async ({chance}) => {
+      console.log("Adding decor with chance: ", chance);
+      let scene = this.sceneGetter();
+      if(scene == null){
+        console.log("getSceneFailed")
+        return "Tool Failed, no reference to scene."
+      }
+      let selection = scene.getSelection()
+      scene.putFeatureAtSelection(this.generate(selection, []));
+      return `${chance}`;
+    },
+    {
+      name: "decor",
+      schema: z.object({
+        chance: z.number().min(0).max(1), // unfortnatly the .default() parameter does not seem to be supported.
+      }),
+      description: "Adds decor to the map with a given chance (default chance of 0.03).",
+    }
+  );
+
   generate(mapSection: generatorInput, _args?: any): completedSection {
     let grid: number[][] = mapSection.grid;
 
@@ -34,5 +64,5 @@ export const decorGenerator: FeatureGenerator = {
       grid: grid,
       points_of_interest: new Map(),
     };
-  },
+  };
 };

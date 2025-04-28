@@ -1,7 +1,13 @@
-import {completedSection, FeatureGenerator, generatorInput} from './GeneratorInterface';
+import { completedSection, FeatureGenerator, generatorInput } from './GeneratorInterface';
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
+import { TinyTownScene } from '../TinyTownScene';
 
-const PADDING = 1; // minimum distance from the edge of the section
-
+const PADDING = 1;
+var fenceX = 0; 
+var fenceY = 0; 
+var width = 0; 
+var height = 0; 
 const tileIDs: Record<number, number> = {
   0b1100: 44, // Top-left
   0b0110: 46, // Top-right
@@ -13,37 +19,62 @@ const tileIDs: Record<number, number> = {
   0b0010: 58, // Right
 };
 
-export const fullFenceGenerator: FeatureGenerator = {
-  generate(mapSection: generatorInput, _args?: any): completedSection {
-    const horizontalLength = Phaser.Math.Between(
-      3,
-      mapSection.width - PADDING * 2,
-    );
-    const verticalLength = Phaser.Math.Between(
-      3,
-      mapSection.height - PADDING * 2,
+const fenceArgsSchema = z.object({
+  width: z.number().min(3).max(50).optional(),
+  height: z.number().min(3).max(50).optional(),
+});
+
+export class FullFenceGenerator implements FeatureGenerator {
+  sceneGetter: () => TinyTownScene;
+
+  constructor(sceneGetter: () => TinyTownScene) {
+    this.sceneGetter = sceneGetter;
+  }
+
+  toolCall = tool(
+    async (args: z.infer<typeof fenceArgsSchema>) => {
+      console.log("Adding full fence with args:", args);
+      const scene = this.sceneGetter();
+      if (!scene) {
+        console.log("getSceneFailed");
+        return "Tool Failed: No reference to scene.";
+      }
+
+      const selection = scene.getSelection();
+      scene.putFeatureAtSelection(this.generate(selection, args));
+      return "Fence added successfully. It starts at" + fenceX + "," + fenceY + ". It has a with width: " + width + " and height: " + height;
+    },
+    {
+      name: "fence",
+      schema: fenceArgsSchema,
+      description: "Adds a complete fence around an area. Accepts optional width and height.",
+    }
+  );
+
+  generate(mapSection: generatorInput, args?: z.infer<typeof fenceArgsSchema>): completedSection {
+    const grid: number[][] = Array.from({ length: mapSection.height }, () =>
+      Array(mapSection.width).fill(-1)
     );
 
-    const fenceX = Phaser.Math.Between(
+    width = args?.width ?? Phaser.Math.Between(3, mapSection.width - PADDING * 2);
+    height = args?.height ?? Phaser.Math.Between(3, mapSection.height - PADDING * 2);
+
+    fenceX = Phaser.Math.Between(
       PADDING,
-      mapSection.width - horizontalLength - PADDING,
+      mapSection.width - width - PADDING
     );
-    const fenceY: number = Phaser.Math.Between(
+    fenceY = Phaser.Math.Between(
       PADDING,
-      mapSection.height - verticalLength - PADDING,
+      mapSection.height - height - PADDING
     );
 
-    let grid: number[][] = Array.from({ length: mapSection.height }, () =>
-      Array(mapSection.width).fill(-1),
-    );
-
-    for (let y: number = fenceY; y < fenceY + verticalLength; y++) {
-      for (let x = fenceX; x < fenceX + horizontalLength; x++) {
+    for (let y = fenceY; y < fenceY + height; y++) {
+      for (let x = fenceX; x < fenceX + width; x++) {
         const mask =
           (Number(y === fenceY) << 2) |
-          (Number(y === fenceY + verticalLength - 1) << 0) |
+          (Number(y === fenceY + height - 1) << 0) |
           (Number(x === fenceX) << 3) |
-          (Number(x === fenceX + horizontalLength - 1) << 1);
+          (Number(x === fenceX + width - 1) << 1);
 
         if (tileIDs[mask]) {
           grid[y][x] = tileIDs[mask];
@@ -51,19 +82,16 @@ export const fullFenceGenerator: FeatureGenerator = {
       }
     }
 
-    //randomly choose a fence tile on the top or bottom and place a gate
-    const gateX = Phaser.Math.Between(
-      fenceX + 1,
-      fenceX + horizontalLength - 2,
-    );
-    const gateY = Math.random() < 0.5 ? fenceY : fenceY + verticalLength - 1;
+    // Add a gate
+    const gateX = Phaser.Math.Between(fenceX + 1, fenceX + width - 2);
+    const gateY = Math.random() < 0.5 ? fenceY : fenceY + height - 1;
     grid[gateY][gateX] = 69;
 
     return {
       name: 'fence',
-      description: 'A fence',
+      description: `A ${width}x${height} fence`,
       grid,
       points_of_interest: new Map(),
     };
-  },
-};
+  }
+}
