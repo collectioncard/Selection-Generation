@@ -29,7 +29,5 @@ export class Preload extends Phaser.Scene {
         for (const tile of database.Tilemap_Packed_Tileset) {
             this.tileDictionary[tile.TileID] = tile.Description;
         }
-
-        console.log('Tile Dictionary:', this.tileDictionary);
     }
 }
