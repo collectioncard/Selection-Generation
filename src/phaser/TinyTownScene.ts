@@ -4,6 +4,7 @@ import { sendSystemMessage } from '../modelChat/chatbox';
 import {Preload} from './Preload';
 import {HouseGenerator} from "./featureGenerators/houseGenerator";
 import {completedSection, generatorInput} from "./featureGenerators/GeneratorInterface.ts";
+import { WorldFactsDatabaseMaker } from './WorldFactsDatabaseMaker.js';
 
 interface TinyTownSceneData {
     dict: { [key: number]: string };
@@ -13,7 +14,8 @@ export class TinyTownScene extends Phaser.Scene {
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
     public readonly CANVAS_HEIGHT = 25; // ^^^
-    
+    public readonly TILE_SIZE = 16; //Size in pixels
+
     ////DEBUG / FEATURE FLAGS////
     private readonly allowOverwriting: boolean = false; // Allows LLM to overwrite placed tiles
     
@@ -38,6 +40,9 @@ export class TinyTownScene extends Phaser.Scene {
       };    
     private grassLayer : Phaser.Tilemaps.TilemapLayer | null = null;
     private featureLayer : Phaser.Tilemaps.TilemapLayer | null = null;
+
+    private wf: WorldFactsDatabaseMaker | null = null;
+    private paragraphDescription: string = '';
 
     // set of tile indexes used for tile understanding
     private selectedTileSet = new Set<number>();
@@ -179,7 +184,13 @@ export class TinyTownScene extends Phaser.Scene {
             const description = this.tileDictionary[tileID];
             selectedDescriptions.push({ tileID, description });
         }
-    
+        
+        this.wf = new WorldFactsDatabaseMaker(this.selectedTiles.combinedGrid, this.selectedTiles.dimensions.width, this.selectedTiles.dimensions.height, this.TILE_SIZE);
+		this.wf.getWorldFacts();
+
+		this.paragraphDescription = this.wf.getDescriptionParagraph();
+		console.log(this.paragraphDescription);
+
         const startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
         const startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
         const endX = Math.max(this.selectionStart.x, this.selectionEnd.x);
@@ -192,7 +203,7 @@ export class TinyTownScene extends Phaser.Scene {
             selectionMessage = `User has selected a single tile at (${startX}, ${startY}).`;
         } else {
             // If multiple tiles are selected, describe the full region
-            selectionMessage = `User has selected a rectangular region on the map starting at (${startX}, ${startY}) and ending at (${endX}, ${endY}).`;
+            selectionMessage = `User has selected a rectangular region on the map starting at (${startX}, ${startY}) and ending at (${endX}, ${endY}). This is the description: ${this.paragraphDescription}`;
         }
     
         sendSystemMessage(selectionMessage);
