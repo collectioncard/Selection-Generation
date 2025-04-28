@@ -16,6 +16,22 @@ export class TinyTownScene extends Phaser.Scene {
     ////DEBUG / FEATURE FLAGS////
     private readonly allowOverwriting: boolean = false; // Allows LLM to overwrite placed tiles
     
+    // Phaser map & tileset references
+    private map!: Phaser.Tilemaps.Tilemap;
+    private tileset!: Phaser.Tilemaps.Tileset;
+
+    // Base layers
+    private grassLayer!: Phaser.Tilemaps.TilemapLayer;
+    private featureLayer!: Phaser.Tilemaps.TilemapLayer;
+    
+    // Named layers storage: name → bounds + tile coordinates
+    private namedLayers = new Map<
+        string,
+        {
+            layer: Phaser.Tilemaps.TilemapLayer,
+            bounds: { x: number, y: number, width: number, height: number }
+        }
+    >();
 
     // selection box properties
     private selectionBox!: Phaser.GameObjects.Graphics;
@@ -34,9 +50,7 @@ export class TinyTownScene extends Phaser.Scene {
         tileGrid: [],
         featureGrid: [],
         combinedGrid: []
-      };    
-    private grassLayer : Phaser.Tilemaps.TilemapLayer | null = null;
-    private featureLayer : Phaser.Tilemaps.TilemapLayer | null = null;
+      };
 
     // set of tile indexes used for tile understanding
     private selectedTileSet = new Set<number>();
@@ -324,6 +338,82 @@ export class TinyTownScene extends Phaser.Scene {
           height: this.selectedTiles.dimensions.height,
         };
     }
+
+    public nameSelection(name: string) {
+        const sx = Math.min(this.selectionStart.x, this.selectionEnd.x);
+        const sy = Math.min(this.selectionStart.y, this.selectionEnd.y);
+        const ex = Math.max(this.selectionStart.x, this.selectionEnd.x);
+        const ey = Math.max(this.selectionStart.y, this.selectionEnd.y);
+        const w  = ex - sx + 1;
+        const h  = ey - sy + 1;
+    
+        const layer = this.map.createBlankLayer(
+            name,            // unique layer name
+            this.tileset,    // your Tileset object
+            sx * 16 * this.SCALE,  // world-space X
+            sy * 16 * this.SCALE,  // world-space Y
+            w,               // layer width in tiles
+            h                // layer height in tiles
+        );
+    
+        if (!layer) {
+            console.warn(`Failed to create layer "${name}".`);
+            return;
+        }
+    
+        // Copy & clear tiles from featureLayer → new layer
+        for (let row = 0; row < h; row++) {
+            for (let col = 0; col < w; col++) {
+                const tx  = sx + col;
+                const ty  = sy + row;
+                const idx = this.featureLayer.getTileAt(tx, ty)?.index ?? -1;
+                if (idx >= 0) {
+                layer.putTileAt(idx, col, row);
+                this.featureLayer.removeTileAt(tx, ty);
+                }
+            }
+        }
+    
+        this.namedLayers.set(name, {
+            layer,
+            bounds: {x: sx, y:sy, width: w, height: h}
+        });
+        console.log(`Layer "${name}" created at tile coords (${sx},${sy}) size ${w}×${h}`);
+    }
+
+    public selectLayer(name: string) {
+        const info = this.namedLayers.get(name);
+        if (!info) {
+          console.warn(`No layer called "${name}".`);
+          return;
+        }
+        const startX  = info.bounds.x;
+        const startY  = info.bounds.y;
+        const width   = info.bounds.width;
+        const height  = info.bounds.height;
+        // this will draw & collect
+        this.setSelectionCoordinates(startX, startY, width, height);
+        console.log(
+            `Re-selected layer "${name}" at tile (${startX},${startY}) ` +
+            `size ${width}×${height}.`
+        );
+    }
+    
+
+    // //Moves an existing named layer by (dx, dy) tiles.
+
+    // public moveLayer(name: string, dx: number, dy: number) {
+    //     const layer = this.namedLayers.get(name);
+    //     if (!layer) {
+    //         console.warn(`Layer "${name}" not found.`);
+    //         return;
+    //     }
+
+    //     layer.x += dx * 16 * this.SCALE;
+    //     layer.y += dy * 16 * this.SCALE;
+
+    //     console.log(`Layer "${name}" moved by (${dx},${dy}) tiles`);
+    // }
 
     putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false){
         console.group("putFeatureAtSelection")

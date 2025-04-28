@@ -12,6 +12,9 @@ import { TilePlacer } from './phaser/simpleTools/placeTile.ts';
 import { FullUndo } from './phaser/simpleTools/undo.ts';
 import { boxPlacer } from './phaser/simpleTools/placeBox.ts';
 import { boxClear } from './phaser/simpleTools/clear.ts';
+import { NameLayerTool } from './phaser/simpleTools/layerTools.ts';
+// import { MoveLayerTool } from './phaser/simpleTools/layerTools.ts';
+import { SelectLayerTool } from './phaser/simpleTools/layerTools.ts';
 
 let gameInstance: Phaser.Game | null = null;
 
@@ -41,6 +44,9 @@ const generators = {
     undo: new FullUndo(getScene),
     box: new boxPlacer(getScene),
     clear: new boxClear(getScene),
+    name_layer: new NameLayerTool(getScene),
+    // move_layer: new MoveLayerTool(getScene),
+    select_layer: new SelectLayerTool(getScene),
 }
 
 Object.values(generators).forEach(generator => {
@@ -57,6 +63,13 @@ document.getElementById('all-selection')?.addEventListener('click', () => {
     if (scene) {
         scene.setSelectionCoordinates(0,0,scene.CANVAS_WIDTH, scene.CANVAS_HEIGHT);
     }
+});
+
+// Name Selection
+document.getElementById('name-selection')?.addEventListener('click', () => {
+    const scene = getScene();
+    const name = window.prompt('Enter a name for this area:');
+    if (name) scene.nameSelection(name);
 });
 
 //Clear selected tiles button
