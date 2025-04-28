@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import {Preload} from './Preload';
 import {HouseGenerator} from "./featureGenerators/houseGenerator";
 import {completedSection, generatorInput} from "./featureGenerators/GeneratorInterface.ts";
+import { WorldFactsDatabaseMaker } from './WorldFactsDatabaseMaker.js';
 
 interface TinyTownSceneData {
     dict: { [key: number]: string };
@@ -12,7 +13,7 @@ export class TinyTownScene extends Phaser.Scene {
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
     public readonly CANVAS_HEIGHT = 25; // ^^^
-    
+    public readonly TILE_SIZE = 16; //Size in pixels
     ////DEBUG / FEATURE FLAGS////
     private readonly allowOverwriting: boolean = false; // Allows LLM to overwrite placed tiles
     
@@ -37,7 +38,9 @@ export class TinyTownScene extends Phaser.Scene {
       };    
     private grassLayer : Phaser.Tilemaps.TilemapLayer | null = null;
     private featureLayer : Phaser.Tilemaps.TilemapLayer | null = null;
-
+    
+    private wf: WorldFactsDatabaseMaker | null = null;
+    private paragraphDescription: string = '';
     // set of tile indexes used for tile understanding
     private selectedTileSet = new Set<number>();
     public tileDictionary!: { [key: number]: string };
@@ -181,6 +184,13 @@ export class TinyTownScene extends Phaser.Scene {
         }
         // selectedDescriptions is all the unique tiles and their descriptions
         console.log(selectedDescriptions);
+        
+        this.wf = new WorldFactsDatabaseMaker(this.selectedTiles.combinedGrid, this.selectedTiles.dimensions.width, this.selectedTiles.dimensions.height, this.TILE_SIZE);
+		this.wf.getWorldFacts();
+		this.wf.printWorldFacts();
+
+		this.paragraphDescription = this.wf.getDescriptionParagraph();
+		console.log(this.paragraphDescription);
     }
     
     drawSelectionBox() {
