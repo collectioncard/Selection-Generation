@@ -90,6 +90,9 @@ export class TinyTownScene extends Phaser.Scene {
 
         const tileSheet = map.addTilesetImage('tiny_town_tiles')!;
 
+        this.map = map;
+        this.tileset = tileSheet;
+
         this.grassLayer = map.createBlankLayer('base-layer', tileSheet, 0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT)!;
         this.grassLayer.setScale(this.SCALE);
 
