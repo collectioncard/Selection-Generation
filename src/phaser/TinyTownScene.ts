@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { sendSystemMessage } from '../modelChat/chatbox';
 
 import {Preload} from './Preload';
 import {HouseGenerator} from "./featureGenerators/houseGenerator";
@@ -173,15 +174,30 @@ export class TinyTownScene extends Phaser.Scene {
         this.isSelecting = false;
         this.collectSelectedTiles();
         
-        // loop through selectedTileSet once it works
         const selectedDescriptions = [];
         for (let tileID of this.selectedTileSet) {
             const description = this.tileDictionary[tileID];
             selectedDescriptions.push({ tileID, description });
         }
-        // selectedDescriptions is all the unique tiles and their descriptions
-        console.log(selectedDescriptions);
+    
+        const startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
+        const startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
+        const endX = Math.max(this.selectionStart.x, this.selectionEnd.x);
+        const endY = Math.max(this.selectionStart.y, this.selectionEnd.y);
+    
+        let selectionMessage: string;
+    
+        if (startX === endX && startY === endY) {
+            // If only one tile is selected, describe it as a single tile selection
+            selectionMessage = `User has selected a single tile at (${startX}, ${startY}).`;
+        } else {
+            // If multiple tiles are selected, describe the full region
+            selectionMessage = `User has selected a rectangular region on the map starting at (${startX}, ${startY}) and ending at (${endX}, ${endY}).`;
+        }
+    
+        sendSystemMessage(selectionMessage);
     }
+    
     
     drawSelectionBox() {
         this.selectionBox.clear();
