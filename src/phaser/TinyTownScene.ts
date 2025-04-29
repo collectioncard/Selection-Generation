@@ -396,6 +396,8 @@ export class TinyTownScene extends Phaser.Scene {
         const height  = info.bounds.height;
         // this will draw & collect
         this.setSelectionCoordinates(startX, startY, width, height);
+        // then zoom in on it
+        this.zoomToLayer(name);
         console.log(
             `Re-selected layer "${name}" at tile (${startX},${startY}) ` +
             `size ${width}×${height}.`
@@ -417,6 +419,51 @@ export class TinyTownScene extends Phaser.Scene {
 
     //     console.log(`Layer "${name}" moved by (${dx},${dy}) tiles`);
     // }
+
+    public zoomToLayer(name: string, paddingFraction = 0.1){
+        const info = this.namedLayers.get(name);
+        if (!info) {
+            console.warn(`Layer "${name}" not found, cannot zoom.`);
+            return;
+        }
+
+        const { x, y, width, height } = info.bounds;
+        const cam = this.cameras.main;
+
+        // tile → world pixels
+        const tw = 16 * this.SCALE;
+        const th = 16 * this.SCALE;
+        const worldX = x * tw;
+        const worldY = y * th;
+        const layerWpx = width * tw;
+        const layerHpx = height * th;
+
+        // how much to zoom so that the layer just fits (before padding)
+        const zoomX = cam.width  / layerWpx;
+        const zoomY = cam.height / layerHpx;
+        let zoom = Math.min(zoomX, zoomY);
+
+        // shrink a bit by paddingFraction (e.g. 0.1 → 10% border)
+        zoom = zoom * (1 - paddingFraction);
+
+        cam.setZoom(zoom);
+
+        // center on the middle of that layer
+        cam.centerOn(
+            worldX + layerWpx  / 2,
+            worldY + layerHpx  / 2
+        );
+    }
+
+    public resetView(){
+        const cam = this.cameras.main;
+        cam.setZoom(1);
+        // center on world middle (mapWidth*tileSize/2, mapHeight*tileSize/2)
+        const worldW = this.CANVAS_WIDTH * 16 * this.SCALE;
+        const worldH = this.CANVAS_HEIGHT * 16 * this.SCALE;
+        cam.centerOn(worldW / 2, worldH / 2);
+        console.log('View reset to default');
+    }
 
     putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false){
         console.group("putFeatureAtSelection")

@@ -128,9 +128,13 @@ if (dropdown) {
       opt.text   = name;
       dropdown.add(opt);
       dropdown.value = name;
+    } else if (val === '__reset__'){
+        s.resetView();
+        dropdown.value = '';
     } else {
       // re-select an existing layer
       s.selectLayer(val);
+      s.zoomToLayer(val);
     }
   });
 }
