@@ -108,35 +108,45 @@ document.getElementById('get-Coords')?.addEventListener('click', () => {
 
 const dropdown = document.getElementById('layer-dropdown') as HTMLSelectElement;
 if (dropdown) {
-  // show placeholder
-  dropdown.value = '';
+    // show placeholder
+    dropdown.value = '';
 
-  dropdown.addEventListener('change', () => {
-    const s = getScene();
-    const val = dropdown.value;
-    if (val === '__new__') {
-      // name a new selection
-      const name = window.prompt('Enter a name for this selection:');
-      if (!name) {
-        dropdown.value = '';
-        return;
-      }
-      s.nameSelection(name);
-      // add to dropdown
-      const opt = document.createElement('option');
-      opt.value = name;
-      opt.text   = name;
-      dropdown.add(opt);
-      dropdown.value = name;
-    } else if (val === '__reset__'){
-        s.resetView();
-        dropdown.value = '';
-    } else {
-      // re-select an existing layer
-      s.selectLayer(val);
-      s.zoomToLayer(val);
-    }
-  });
+    window.addEventListener('layerCreated', (e: Event) => {
+        const name = (e as CustomEvent).detail as string;
+        if (![...dropdown.options].some(o => o.value === name)) {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.text   = name;
+          dropdown.add(opt);
+        }
+    });
+
+    dropdown.addEventListener('change', () => {
+        const s = getScene();
+        const val = dropdown.value;
+        if (val === '__new__') {
+        // name a new selection
+        const name = window.prompt('Enter a name for this selection:');
+        if (!name) {
+            dropdown.value = '';
+            return;
+        }
+        s.nameSelection(name);
+        // add to dropdown
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.text   = name;
+        dropdown.add(opt);
+        dropdown.value = name;
+        } else if (val === '__reset__'){
+            s.resetView();
+            dropdown.value = '';
+        } else {
+        // re-select an existing layer
+        s.selectLayer(val);
+        s.zoomToLayer(val);
+        }
+    });
 }
 
 function getRandEmoji(): string {

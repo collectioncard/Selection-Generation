@@ -14,6 +14,9 @@ export class NameLayerTool {
     async ({ name }: { name: string }) => {
       const scene = this.sceneGetter();
       scene.nameSelection(name);
+      window.dispatchEvent(
+        new CustomEvent('layerCreated', { detail: name })
+      );
       return `Layer "${name}" created.`;
     },
     {
