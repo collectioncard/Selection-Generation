@@ -4,7 +4,7 @@ import { sendSystemMessage } from '../modelChat/chatbox';
 import {Preload} from './Preload';
 import {HouseGenerator} from "./featureGenerators/houseGenerator";
 import {completedSection, generatorInput} from "./featureGenerators/GeneratorInterface.ts";
-import { WorldFactsDatabaseMaker } from './WorldFactsDatabaseMaker.js';
+import { WorldFactsDatabaseMaker } from './WorldFactsDatabaseMaker.ts';
 
 interface TinyTownSceneData {
     dict: { [key: number]: string };
