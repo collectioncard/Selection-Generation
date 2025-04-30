@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import {Preload} from './Preload';
 import {HouseGenerator} from "./featureGenerators/houseGenerator";
 import {completedSection, generatorInput} from "./featureGenerators/GeneratorInterface.ts";
+import {Tree} from "./TreeStructure.ts"
 
 interface TinyTownSceneData {
     dict: { [key: number]: string };
@@ -23,6 +24,9 @@ export class TinyTownScene extends Phaser.Scene {
     // Base layers
     private grassLayer!: Phaser.Tilemaps.TilemapLayer;
     private featureLayer!: Phaser.Tilemaps.TilemapLayer;
+
+    // Tree Structure
+    private layerTree = new Tree("Root", [[0, 0], [this.CANVAS_WIDTH, this.CANVAS_HEIGHT]], this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
     
     // Named layers storage: name → bounds + tile coordinates
     private namedLayers = new Map<
@@ -382,6 +386,9 @@ export class TinyTownScene extends Phaser.Scene {
             bounds: {x: sx, y:sy, width: w, height: h}
         });
         console.log(`Layer "${name}" created at tile coords (${sx},${sy}) size ${w}×${h}`);
+
+        this.layerTree.add(name, [[sx, sy],[ex, ey]], w, h);
+        this.layerTree.printTree();
     }
 
     public selectLayer(name: string) {

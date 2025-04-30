@@ -1,11 +1,11 @@
 class Node {
     Name: string;
-    Coordinates: number[];
+    Coordinates: [number[], number[]];
     Width: number;
     Height: number;
     Children: Node[];
 
-    constructor(Name: string = "", Coordinates: number[] = [], Width: number = 0, Height: number = 0, Children: Node[] = []) {
+    constructor(Name: string = "", Coordinates: [number[], number[]] = [[],[]], Width: number = 0, Height: number = 0, Children: Node[] = []) {
         this.Name = Name;
         this.Coordinates = Coordinates;
         this.Width = Width;
@@ -15,9 +15,9 @@ class Node {
 }
 
 export class Tree {
-    Root: Node;
-    constructor(Root: Node) {
-        this.Root = Root;
+    private Root: Node;
+    constructor(Name: string = "", Coordinates: [number[], number[]] = [[],[]], Width: number = 0, Height: number = 0) {
+        this.Root = new Node(Name, Coordinates, Width, Height);
     }
 
     // function: add()
@@ -28,10 +28,10 @@ export class Tree {
     //      Height: height of layer
     //      parentName: name of the parent layer
     // returns nothing
-    add(layerName: string = "", Coordinates: [], Width: number, Height: number, parentName: string = "") {
+    add(layerName: string = "", Coordinates: [number[], number[]] = [[],[]], Width: number, Height: number) {
         let newNode = new Node(layerName, Coordinates, Width, Height);
-        let parentNode = this.findNode(parentName);
-        if (parentNode != undefined) {
+        let parentNode = this.suitableParentFind(Coordinates);
+        if (parentNode != null) {
             parentNode.Children.push(newNode);
         }
     }
@@ -71,6 +71,28 @@ export class Tree {
         }
     }
 
+    private suitableParentFind(Coordinates: [number[], number[]], currentNode: Node = this.Root): Node | null {
+        // Check if the new node can fit within currentNode
+        const isWithin =
+            Coordinates[0][0] >= currentNode.Coordinates[0][0] &&
+            Coordinates[0][1] >= currentNode.Coordinates[0][1] &&
+            Coordinates[1][0] <= currentNode.Coordinates[1][0] &&
+            Coordinates[1][1] <= currentNode.Coordinates[1][1];
+    
+        if (!isWithin) {
+            return null;
+        }
+
+        for (let childNode of currentNode.Children) {
+            const result = this.suitableParentFind(Coordinates, childNode);
+            if (result !== null) {
+                return result;
+            }
+        }
+
+        return currentNode;
+    }    
+
     // private function: find()
     // parameters: 
     //      layerName: name of the layer you are searching for
@@ -83,6 +105,17 @@ export class Tree {
             for (let childNode of currentNode.Children) {
                 this.find(layerName, childNode);
             }
+        }
+    }
+
+    printTree(currentNode: Node = this.Root) {
+        let currentChildNameString = "";
+        for (let childNode of currentNode.Children) {
+            currentChildNameString += (childNode.Name + ", ");
+        }
+        console.log("Parent: " + currentNode.Name + "        Children: " + currentChildNameString);
+        for (let childNode of currentNode.Children) {
+            this.printTree(childNode);
         }
     }
 }
