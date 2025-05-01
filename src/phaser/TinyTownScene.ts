@@ -12,14 +12,11 @@ export class TinyTownScene extends Phaser.Scene {
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
     public readonly CANVAS_HEIGHT = 25; // ^^^
-
-    private highlightSprite?: Phaser.GameObjects.Sprite;
-    public isDraggingTile: boolean = false;
-
     
     ////DEBUG / FEATURE FLAGS////
     private readonly allowOverwriting: boolean = false; // Allows LLM to overwrite placed tiles
     
+
     // selection box properties
     private selectionBox!: Phaser.GameObjects.Graphics;
     public selectionStart!: Phaser.Math.Vector2;
@@ -57,8 +54,9 @@ export class TinyTownScene extends Phaser.Scene {
     }
 
     init(data: TinyTownSceneData) {
+        console.log(data);
         this.tileDictionary = data.dict;
-        console.log("Tile Dictionary: " + this.tileDictionary);
+        console.log(this.tileDictionary);
     }
 
     preload() {
@@ -115,12 +113,7 @@ export class TinyTownScene extends Phaser.Scene {
         // 3. Put that somewhere in the feature layer. 1,1 for this example.
         this.featureLayer.putTilesAt(generatedData.grid, 1, 1);
       
-        //highlight tile
-        this.highlightSprite = this.add.sprite(0, 0, 'tile-highlight');
-        this.highlightSprite.setOrigin(0);
-        this.highlightSprite.setAlpha(0.5); // semi-transparent
-        this.highlightSprite.setVisible(false);
-
+        
     }
 
     startSelection(pointer: Phaser.Input.Pointer): void {
@@ -379,49 +372,6 @@ export class TinyTownScene extends Phaser.Scene {
         }
         console.groupEnd()
     }
-
-    public placeTileAt(x: number, y: number, tileID: number, layerType: 'grass' | 'feature' = 'feature') {
-        const tilemapLayer = layerType === 'grass' ? this.grassLayer : this.featureLayer;
-    
-        if (!tilemapLayer) {
-            console.warn(`Layer "${layerType}" is not available.`);
-            return;
-        }
-    
-        if (x < 0 || x >= this.CANVAS_WIDTH || y < 0 || y >= this.CANVAS_HEIGHT) {
-            console.warn(`Invalid placement coordinates: (${x}, ${y})`);
-            return;
-        }
-    
-        const existingTile = tilemapLayer.getTileAt(x, y);
-        if (existingTile && !this.allowOverwriting) {
-            console.warn(`Tile already exists at (${x}, ${y}) and overwriting is disabled.`);
-            return;
-        }
-    
-        tilemapLayer.putTileAt(tileID, x, y);
-    }
-
-    update () {
-        if (this.isDraggingTile && this.highlightSprite) {
-            const worldX = this.input.activePointer.worldX;
-            const worldY = this.input.activePointer.worldY;
-        
-            const gridX = Math.floor(worldX / 16);
-            const gridY = Math.floor(worldY / 16);
-        
-            if (gridX >= 0 && gridX < 40 && gridY >= 0 && gridY < 25) {
-                this.highlightSprite.setVisible(true);
-                this.highlightSprite.setPosition(gridX * 16, gridY * 16);
-            } else {
-                this.highlightSprite.setVisible(false);
-            }
-        } else if (this.highlightSprite) {
-            this.highlightSprite.setVisible(false);
-        }
-        
-    }
-    
 }
 
 export function createGame(attachPoint: HTMLDivElement) {
