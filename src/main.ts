@@ -106,48 +106,109 @@ document.getElementById('get-Coords')?.addEventListener('click', () => {
     }
 });
 
-const dropdown = document.getElementById('layer-dropdown') as HTMLSelectElement;
-if (dropdown) {
-    // show placeholder
-    dropdown.value = '';
-
-    window.addEventListener('layerCreated', (e: Event) => {
-        const name = (e as CustomEvent).detail as string;
-        if (![...dropdown.options].some(o => o.value === name)) {
-          const opt = document.createElement('option');
-          opt.value = name;
-          opt.text   = name;
-          dropdown.add(opt);
-        }
-    });
-
-    dropdown.addEventListener('change', () => {
-        const s = getScene();
-        const val = dropdown.value;
-        if (val === '__new__') {
-        // name a new selection
-        const name = window.prompt('Enter a name for this selection:');
-        if (!name) {
-            dropdown.value = '';
-            return;
-        }
-        s.nameSelection(name);
-        // add to dropdown
+const parentDropdown = document.getElementById('parent-dropdown') as HTMLSelectElement;
+const childDropdown = document.getElementById('child-dropdown') as HTMLSelectElement;
+  
+// Find a node by name in the tree
+function findNode(name: string, node: any): any | null {
+    if (node.Name === name) return node;
+    for (const child of node.Children) {
+        const found = findNode(name, child);
+        if (found) return found;
+    }
+    return null;
+}
+  
+// Populate the parent dropdown with root‐level layers
+function populateParents() {
+    const scene = getScene() as any;
+    const tree = scene.layerTree;
+    const root = tree.Root;
+  
+    // reset both dropdowns
+    parentDropdown.innerHTML = `<option value="">-- Select Parent --</option>
+        <option value="__reset__">🔄 Reset View</option>`;
+    childDropdown.innerHTML  = `<option value="">-- Select Child --</option>`;
+  
+    for (const child of root.Children) {
         const opt = document.createElement('option');
-        opt.value = name;
-        opt.text   = name;
-        dropdown.add(opt);
-        dropdown.value = name;
-        } else if (val === '__reset__'){
-            s.resetView();
-            dropdown.value = '';
-        } else {
-        // re-select an existing layer
+        opt.value = child.Name;
+        opt.text  = child.Name;
+        parentDropdown.add(opt);
+    }
+}
+  
+// Populate children dropdown based on selected parent
+function populateChildren(parentName: string) {
+    const scene = getScene() as any;
+    const root = (scene.layerTree as any).Root;
+    const parentNode = findNode(parentName, root);
+  
+    childDropdown.innerHTML = `<option value="">-- Select Child --</option>
+        <option value="__reset__">🔄 Reset View</option>`;
+    if (!parentNode) return;
+  
+    for (const child of parentNode.Children) {
+        const opt = document.createElement('option');
+        opt.value = child.Name;
+        opt.text  = child.Name;
+        childDropdown.add(opt);
+    }
+}
+  
+// When a parent is chosen, show its children
+parentDropdown.addEventListener('change', () => {
+    const s = getScene();
+    const val = parentDropdown.value;
+    if (val === '__reset__') {
+        s.resetView();
+        parentDropdown.value = '';
+        childDropdown.innerHTML = `<option value="">-- Select Child --</option>`;
+        populateParents();
+        return;
+    }
+    if (!val) {
+        childDropdown.innerHTML = `<option value="">-- Select Child --</option>`;
+    } else {
+        // select & zoom that layer
         s.selectLayer(val);
         s.zoomToLayer(val);
-        }
-    });
-}
+    
+        // then populate the children dropdown
+        populateChildren(val);
+    }
+});
+  
+// When a child is chosen, child becomes the new parent
+childDropdown.addEventListener('change', () => {
+    const s = getScene();
+    const val = childDropdown.value;
+    if (val === '__reset__') {
+        s.resetView();
+        populateParents();
+        return;
+    }
+    if (!val) return;
+  
+    parentDropdown.innerHTML = `<option value="">-- Select Parent --</option>
+    <option value="__reset__">🔄 Reset View</option>
+    <option value="${val}" selected>${val}</option>`;
+
+    // focus & zoom to the newly selected layer
+    s.selectLayer(val);
+    s.zoomToLayer(val);
+  
+    // Populate its own children
+    populateChildren(val);
+});
+  
+// Whenever the LLM creates a new layer, re-populate the top‐level list
+window.addEventListener('layerCreated', () => {
+    populateParents();
+});
+  
+// initialize on page load
+populateParents();
 
 function getRandEmoji(): string {
     let emoji = [':)', ':(', '>:(', ':D', '>:D', ':^D', ':(', ':D', 'O_O', ':P', '-_-', 'O_-', 'O_o', '𓆉', 'ジ', '⊂(◉‿◉)つ', '	(｡◕‿‿◕｡)', '(⌐■_■)', '<|°_°|>', '<|^.^|>', ':P', ':>', ':C', ':}', ':/', 'ʕ ● ᴥ ●ʔ','(˶ᵔ ᵕ ᵔ˶)'];
