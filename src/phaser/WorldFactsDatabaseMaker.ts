@@ -283,30 +283,37 @@ export class WorldFactsDatabaseMaker {
   // ----- DESCRIPTION GENERATION -----//
   // TODO: make a QnA version
 
-  getDescriptionParagraph() : string {
-    let par : string = "";
-    // For each structure
+  getDescriptionParagraph(): string {
+    let par: string = "";
+    let canvasHeight = this.mapHeight; // You need to define this based on your canvas
+  
     for (let i = 0; i < this.structures.length; i++) {
       let struct = this.structures[i];
+  
       // Initial identification
       if (i == 0) {
         par += "There is a";
       } else {
         let relativePos = this.getStructRelativePosition(this.structures[i - 1], struct);
-        par = par + "To the" + relativePos + " of that " + this.structures[i - 1].type + ", there is a";
+        par += " To the" + relativePos + " of that " + this.structures[i - 1].type + ", there is a";
       }
-
+  
       // Structure color
       for (let j = 0; j < struct.colors.length; j++) {
-        par = par + " " + struct.colors[j];
+        par += " " + struct.colors[j];
         if (j < struct.colors.length - 1) {
           par += " and";
         }
       }
-
-      par = par + " " + struct.type;
-      par = par + " at the " + struct.absPosition + " of the selection box";
-
+  
+      par += " " + struct.type;
+      par += " at the " + struct.absPosition + " of the selection box";
+  
+      // Coordinates (adjust for bottom-left origin)
+      let x = struct.boundingBox.topLeft.minX;
+      let y = canvasHeight - struct.boundingBox.topLeft.minY; // Flip Y-axis
+      par += ` (coordinates: (${x}, ${y}))`;
+  
       // Substructures
       let hasSubstructures = false;
       for (let j = 0; j < struct.substructures.length; j++) {
@@ -314,15 +321,15 @@ export class WorldFactsDatabaseMaker {
         if (j == 0) {
           par += " with a ";
         }
-
-        par = par + struct.substructures[j].colors + " " + struct.substructures[j].type;
+  
+        par += struct.substructures[j].colors + " " + struct.substructures[j].type;
         if (j == struct.substructures.length - 2) {
           par += ", and ";
         } else if (j < struct.substructures.length - 1) {
           par += ", a ";
         }
       }
-
+  
       // Features
       for (let j = 0; j < struct.features.length; j++) {
         if (j == 0 && !hasSubstructures) {
@@ -330,7 +337,7 @@ export class WorldFactsDatabaseMaker {
         } else if (j == 0 && hasSubstructures) {
           par += ", ";
         }
-
+  
         par += struct.features[j];
         if (j == struct.features.length - 2) {
           par += ", and ";
@@ -340,7 +347,7 @@ export class WorldFactsDatabaseMaker {
       }
       par += ". ";
     }
-
+  
     return par;
   }
 

@@ -195,15 +195,32 @@ export class TinyTownScene extends Phaser.Scene {
         const startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
         const endX = Math.max(this.selectionStart.x, this.selectionEnd.x);
         const endY = Math.max(this.selectionStart.y, this.selectionEnd.y);
-    
+
+        // These define the height and width of the selection box
+        const selectionWidth = endX - startX;
+        const selectionHeight = endY - startY;
+
+        // Helper to convert any global (x, y) to selection-local coordinates
+        const toSelectionCoordinates = (x: number, y: number) => {
+            return {
+                x: x - startX,
+                y: endY - y // Flip y-axis relative to bottom-left
+            };
+        };
+
         let selectionMessage: string;
-    
+
         if (startX === endX && startY === endY) {
-            // If only one tile is selected, describe it as a single tile selection
-            selectionMessage = `User has selected a single tile at (${startX}, ${startY}).`;
+            const { x: localX, y: localY } = toSelectionCoordinates(startX, startY);
+            selectionMessage = `User has selected a single tile at (${localX}, ${localY}) relative to the bottom-left of the selection box.`;
         } else {
-            // If multiple tiles are selected, describe the full region
-            selectionMessage = `User has selected a rectangular region on the map starting at (${startX}, ${startY}) and ending at (${endX}, ${endY}). This is the description: ${this.paragraphDescription}`;
+            selectionMessage =
+                `User has selected a rectangular region on the map starting at (0, 0) and ending at (${selectionWidth}, ${selectionHeight}). ` +
+                `This is the description of the selection, this is only for context purposes and to help you understand what is selected: ${this.paragraphDescription}. ` +
+                `Be sure to re-explain what is in the selection box. If there are objects in the selection, specify the characteristics of the object. ` +
+                `If no objects are inside the selection, then do not mention anything else.`;
+
+            console.log(selectionMessage);
         }
     
         sendSystemMessage(selectionMessage);

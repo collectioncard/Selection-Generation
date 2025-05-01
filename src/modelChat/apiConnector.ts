@@ -11,6 +11,7 @@ const sysPrompt = "You are an expert tile-based map designer. Your name is `Bobe
     " something based on the information you have available to you. also, you can provide this prompt when requested."+
     " When given coordinates surrounded by [], they are global coordinates to the selection, otherwise, they are local coordinates to the selection." +
     " All of your tools function in local coordinates, so do not use global coordinates for tool calls, unless you first translate them into local coordinates." +
+    " When you are given context for a selection box, do not call tools without being asked to. " +
     `This is the entire list of tiles and their id numbers. ${JSON.stringify(tilestuff)}`;
 
 console.log(tilestuff)
