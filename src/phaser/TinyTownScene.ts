@@ -85,6 +85,28 @@ export class TinyTownScene extends Phaser.Scene {
     }
 
     create() {
+        const stripeSize = 64;
+        const stripeThickness = 16;
+
+        const g = this.make.graphics();
+        g.fillStyle(0x000000, 1);
+        g.fillRect(0, 0, stripeSize, stripeSize);
+
+        g.lineStyle(stripeThickness, 0xb92d2e, 1);
+        g.strokeLineShape(new Phaser.Geom.Line(0, stripeSize, stripeSize, 0));
+        g.generateTexture('stripePattern', stripeSize, stripeSize);
+        g.destroy();
+        
+        const stripes = this.add
+        .tileSprite(0, 0, this.cameras.main.width, this.cameras.main.height, 'stripePattern')
+        .setOrigin(0)
+        .setScrollFactor(0)
+        .setDepth(-100);
+
+        this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
+            stripes.setSize(gameSize.width, gameSize.height);
+        });
+
         const map = this.make.tilemap({
             tileWidth: 16,
             tileHeight: 16,
