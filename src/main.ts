@@ -118,6 +118,28 @@ function findNode(name: string, node: any): any | null {
     }
     return null;
 }
+
+function updateHighlights() {
+    const scene = getScene();
+    const selChild  = childDropdown.value;
+    const selParent = parentDropdown.value;
+    let namesToHighlight: string[];
+  
+    if (selChild && selChild !== '__reset__') {
+        // highlight children of the currently selected child
+        const node = findNode(selChild, (scene as any).layerTree.Root);
+        namesToHighlight = node?.Children.map((c: any) => c.Name) || [];
+    } else if (selParent && selParent !== '__reset__') {
+        // highlight children of the currently selected parent
+        const node = findNode(selParent, (scene as any).layerTree.Root);
+        namesToHighlight = node?.Children.map((c: any) => c.Name) || [];
+    } else {
+        // highlight top-level layers
+        namesToHighlight = (scene as any).layerTree.Root.Children.map((c: any) => c.Name);
+    }
+  
+    scene.drawLayerHighlights(namesToHighlight);
+}
   
 // Populate the parent dropdown with root‐level layers
 function populateParents() {
@@ -137,7 +159,6 @@ function populateParents() {
         parentDropdown.add(opt);
     }
 }
-  
 // Populate children dropdown based on selected parent
 function populateChildren(parentName: string) {
     const scene = getScene() as any;
@@ -165,6 +186,7 @@ parentDropdown.addEventListener('change', () => {
         parentDropdown.value = '';
         childDropdown.innerHTML = `<option value="" disabled>-- Select Sub-Layer --</option>`;
         populateParents();
+        if (highlightMode) updateHighlights();
         return;
     }
     if (!val) {
@@ -173,10 +195,14 @@ parentDropdown.addEventListener('change', () => {
         // select & zoom that layer
         s.selectLayer(val);
         s.zoomToLayer(val);
+
+        // clear any selection on the map
+        s.clearSelection(); 
     
         // then populate the children dropdown
         populateChildren(val);
     }
+    if (highlightMode) updateHighlights();
 });
   
 // When a child is chosen, child becomes the new parent
@@ -186,6 +212,7 @@ childDropdown.addEventListener('change', () => {
     if (val === '__reset__') {
         s.resetView();
         populateParents();
+        if (highlightMode) updateHighlights();
         return;
     }
     if (!val) return;
@@ -198,17 +225,38 @@ childDropdown.addEventListener('change', () => {
     s.selectLayer(val);
     s.zoomToLayer(val);
   
+    s.clearSelection(); 
+    
     // Populate its own children
     populateChildren(val);
+
+    if (highlightMode) updateHighlights();
 });
   
 // Whenever the LLM creates a new layer, re-populate the top‐level list
 window.addEventListener('layerCreated', () => {
     populateParents();
+    if (highlightMode) updateHighlights();
 });
-  
-// initialize on page load
-populateParents();
+
+window.addEventListener('layerSelected', () => {
+    if (highlightMode) updateHighlights();
+});
+
+const toggleBtn = document.getElementById('toggle-highlights') as HTMLButtonElement;
+let highlightMode = false;
+
+toggleBtn.textContent = 'Enable Highlights';
+toggleBtn.addEventListener('click', () => {
+    const s = getScene();
+    highlightMode = !highlightMode;
+    toggleBtn.textContent = highlightMode ? 'Disable Highlights' : 'Enable Highlights';
+    if (!highlightMode) {
+        s.clearLayerHighlights();
+    } else {
+        updateHighlights();
+    }
+});
 
 function getRandEmoji(): string {
     let emoji = [':)', ':(', '>:(', ':D', '>:D', ':^D', ':(', ':D', 'O_O', ':P', '-_-', 'O_-', 'O_o', '𓆉', 'ジ', '⊂(◉‿◉)つ', '	(｡◕‿‿◕｡)', '(⌐■_■)', '<|°_°|>', '<|^.^|>', ':P', ':>', ':C', ':}', ':/', 'ʕ ● ᴥ ●ʔ','(˶ᵔ ᵕ ᵔ˶)'];

@@ -10,6 +10,9 @@ interface TinyTownSceneData {
 }
 
 export class TinyTownScene extends Phaser.Scene {
+    private highlightBorders: Phaser.GameObjects.Graphics[] = []; 
+    private highlightLabels: Phaser.GameObjects.Text[] = [];
+
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
     public readonly CANVAS_HEIGHT = 25; // ^^^
@@ -368,6 +371,50 @@ export class TinyTownScene extends Phaser.Scene {
         };
     }
 
+    public clearLayerHighlights() {
+        this.highlightBorders.forEach(g => g.destroy());
+        this.highlightLabels.forEach(t => t.destroy());
+        this.highlightBorders = [];
+        this.highlightLabels  = [];
+    }
+
+    public drawLayerHighlights(layerNames: string[]) {
+        this.clearLayerHighlights();
+      
+        const tw = 16 * this.SCALE;
+        const th = 16 * this.SCALE;
+        const color     = 0x00ff00; // Color
+        const alpha     = 0.5;      // opacity
+        const lineWidth = 4;        // line width
+      
+        layerNames.forEach(name => {
+            const info = this.namedLayers.get(name);
+            if (!info) return;
+        
+            const { x, y, width, height } = info.bounds;
+            const wx  = x * tw;
+            const wy  = y * th;
+            const wpx = width  * tw;
+            const hpx = height * th;
+        
+            // draw the box
+            const g = this.add.graphics().setDepth(150);
+            g.lineStyle(lineWidth, color, alpha);
+            g.strokeRect(wx, wy, wpx, hpx);
+            this.highlightBorders.push(g);
+        
+            // draw the label in the top-right corner
+            const label = this.add
+                .text(wx + wpx - 4, wy + 4, name, {
+                font: '28px sans-serif',
+                color: '#ff0000'
+                })
+                .setOrigin(1, 0)
+                .setDepth(151);
+            this.highlightLabels.push(label);
+        });
+    }
+
     public nameSelection(name: string) {
         const sx = Math.min(this.selectionStart.x, this.selectionEnd.x);
         const sy = Math.min(this.selectionStart.y, this.selectionEnd.y);
@@ -431,6 +478,9 @@ export class TinyTownScene extends Phaser.Scene {
             `Re-selected layer "${name}" at tile (${startX},${startY}) ` +
             `size ${width}×${height}.`
         );
+
+        // Used to change highlighted layer in the UI
+        window.dispatchEvent(new CustomEvent('layerSelected', { detail: name }));
     }
     
 
