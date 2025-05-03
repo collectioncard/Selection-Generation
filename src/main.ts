@@ -14,6 +14,7 @@ import { boxPlacer } from './phaser/simpleTools/placeBox.ts';
 import { boxClear } from './phaser/simpleTools/clear.ts';
 
 let gameInstance: Phaser.Game | null = null;
+let selectedTileId = null;
 
 export function getScene(): TinyTownScene {
     if (!gameInstance) throw Error("Scene does not exist >:(")
@@ -103,3 +104,18 @@ function getRandEmoji(): string {
     let emoji = [':)', ':(', '>:(', ':D', '>:D', ':^D', ':(', ':D', 'O_O', ':P', '-_-', 'O_-', 'O_o', '𓆉', 'ジ', '⊂(◉‿◉)つ', '	(｡◕‿‿◕｡)', '(⌐■_■)', '<|°_°|>', '<|^.^|>', ':P', ':>', ':C', ':}', ':/', 'ʕ ● ᴥ ●ʔ','(˶ᵔ ᵕ ᵔ˶)'];
     return emoji[Math.floor(Math.random() * emoji.length)];
 }
+
+
+// which tile is selected from the pallete
+document.querySelectorAll<HTMLButtonElement>('.tile-button').forEach(button => {
+    button.addEventListener('click', () => {
+        const idStr = button.getAttribute('data-tileid');
+        const id = idStr ? parseInt(idStr, 10) : null;
+        if (id !== null) {
+            const scene = getScene();
+            scene.setSelectedTileId(id);
+        } else {
+            console.error("Missing data-tileid on button:", button);
+        }
+    });
+});
