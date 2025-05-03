@@ -126,9 +126,9 @@ function populateParents() {
     const root = tree.Root;
   
     // reset both dropdowns
-    parentDropdown.innerHTML = `<option value="">-- Select Parent --</option>
+    parentDropdown.innerHTML = `<option value="" selected disabled>-- Select Layer --</option>
         <option value="__reset__">🔄 Reset View</option>`;
-    childDropdown.innerHTML  = `<option value="">-- Select Child --</option>`;
+    childDropdown.innerHTML  = `<option value="">-- Select Sub-Layer --</option>`;
   
     for (const child of root.Children) {
         const opt = document.createElement('option');
@@ -144,7 +144,7 @@ function populateChildren(parentName: string) {
     const root = (scene.layerTree as any).Root;
     const parentNode = findNode(parentName, root);
   
-    childDropdown.innerHTML = `<option value="">-- Select Child --</option>
+    childDropdown.innerHTML = `<option value="" selected disabled>-- Select Sub-Layer --</option>
         <option value="__reset__">🔄 Reset View</option>`;
     if (!parentNode) return;
   
@@ -163,12 +163,12 @@ parentDropdown.addEventListener('change', () => {
     if (val === '__reset__') {
         s.resetView();
         parentDropdown.value = '';
-        childDropdown.innerHTML = `<option value="">-- Select Child --</option>`;
+        childDropdown.innerHTML = `<option value="" disabled>-- Select Sub-Layer --</option>`;
         populateParents();
         return;
     }
     if (!val) {
-        childDropdown.innerHTML = `<option value="">-- Select Child --</option>`;
+        childDropdown.innerHTML = `<option value="" disabled>-- Select Sub-Layer --</option>`;
     } else {
         // select & zoom that layer
         s.selectLayer(val);
@@ -190,7 +190,7 @@ childDropdown.addEventListener('change', () => {
     }
     if (!val) return;
   
-    parentDropdown.innerHTML = `<option value="">-- Select Parent --</option>
+    parentDropdown.innerHTML = `<option value="" disabled>-- Select Layer --</option>
     <option value="__reset__">🔄 Reset View</option>
     <option value="${val}" selected>${val}</option>`;
 
