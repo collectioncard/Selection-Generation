@@ -17,6 +17,65 @@ const TILE_PRIORITY = {
     EMPTY: -1
 };
 
+const MULTI_TILE_TREES = {
+    single: {
+      green: [4, 16],
+      yellow: [3, 15],
+    },
+    stack1: {
+      green: [6, 8, 30, 32],
+      yellow: [9, 11, 33, 35],
+    },
+    stack2: {
+      green: [7, 19, 31, 18, 20],
+      yellow: [10, 22, 34, 21, 23],
+    },
+};
+
+const buildNeighbourRules = () => {
+    type RuleEntry = { dx: number; dy: number; expected: number };
+    const map = new Map<number, RuleEntry[]>();
+  
+    const addRules = (tiles: number[], positions: { x: number; y: number }[]) => {
+      tiles.forEach((id, i) => {
+        const rules: RuleEntry[] = [];
+        tiles.forEach((otherID, j) => {
+          if (i === j) return;
+          const dx = positions[j].x - positions[i].x;
+          const dy = positions[j].y - positions[i].y;
+          rules.push({ dx, dy, expected: otherID });
+        });
+        map.set(id, rules);
+      });
+    };
+  
+    addRules(MULTI_TILE_TREES.single.green, [{ x: 0, y: 0 }, { x: 0, y: 1 }]);
+    addRules(MULTI_TILE_TREES.single.yellow, [{ x: 0, y: 0 }, { x: 0, y: 1 }]);
+  
+    const squarePos = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 0, y: 1 },
+      { x: 1, y: 1 },
+    ];
+    addRules(MULTI_TILE_TREES.stack1.green, squarePos);
+    addRules(MULTI_TILE_TREES.stack1.yellow, squarePos);
+  
+    const crossPos = [
+      { x: 0, y: 0 },   // top 
+      { x: 0, y: 1 },   // mid 
+      { x: 0, y: 2 },   // bottom 
+      { x: -1, y: 1 },  // left 
+      { x: 1, y: 1 },   // right 
+    ];
+    addRules(MULTI_TILE_TREES.stack2.green, crossPos);
+    addRules(MULTI_TILE_TREES.stack2.yellow, crossPos);
+  
+    return map;
+};
+  
+const MULTI_TILE_NEIGHBOUR_RULES = buildNeighbourRules();
+
 export class TinyTownScene extends Phaser.Scene {
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
@@ -364,6 +423,7 @@ export class TinyTownScene extends Phaser.Scene {
 
         let startX = 0;
         let startY = 0;
+        const changed: { x: number; y: number }[] = [];
 
         if (!worldOverride) {
              if (this.selectionStart && this.selectionEnd &&
@@ -455,19 +515,64 @@ export class TinyTownScene extends Phaser.Scene {
                     if (newPriority >= currentPriority) {
                          // console.log(`   Placing: New P${newPriority} >= Current P${currentPriority} at (${placeX}, ${placeY})`);
                         this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
+                        changed.push({ x: placeX, y: placeY });
                     } else {
                         // console.log(`   Skipping: New P${newPriority} < Current P${currentPriority} at (${placeX}, ${placeY})`);
                     }
                 } else {
                     if (currentTileIndex === -1) {
                          this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
+                         changed.push({ x: placeX, y: placeY });
                     }
                 } 
             } 
         } 
 
-        // console.log(`Finished placing ${generatedData.name}.`); // Keep logging minimal
+        this.pruneBrokenTrees(changed);
         console.groupEnd();
+    }
+
+    pruneBrokenTrees(changed?: { x: number; y: number }[]): void {
+        if (!this.featureLayer) return;
+    
+        let minX = 0;
+        let minY = 0;
+        let maxX = this.featureLayer.layer.width  - 1;
+        let maxY = this.featureLayer.layer.height - 1;
+        //const time = performance.now();
+        //let tilesScanned = 0;
+    
+        if (changed && changed.length) {
+        minX = Math.max(0, Math.min(...changed.map(c => c.x)) - 1);
+        minY = Math.max(0, Math.min(...changed.map(c => c.y)) - 1);
+        maxX = Math.min(this.featureLayer.layer.width  - 1, Math.max(...changed.map(c => c.x)) + 1);
+        maxY = Math.min(this.featureLayer.layer.height - 1, Math.max(...changed.map(c => c.y)) + 1);
+        }
+    
+        const toRemove: { x: number; y: number }[] = [];
+    
+        for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
+                const tile = this.featureLayer.getTileAt(x, y);
+                //tilesScanned++;
+                if (!tile) continue;
+        
+                const rules = MULTI_TILE_NEIGHBOUR_RULES.get(tile.index);
+                if (!rules) continue;
+        
+                const broken = rules.some(({ dx, dy, expected }) => {
+                const n = this.featureLayer.getTileAt(x + dx, y + dy);
+                return !n || n.index !== expected;
+                });
+        
+                if (broken) toRemove.push({ x, y });
+            }
+        }
+    
+        toRemove.forEach(({ x, y }) => this.featureLayer!.putTileAt(-1, x, y));
+        //const timeTaken = performance.now() - time;
+        //console.log(`Pruned ${toRemove.length} tiles in ${timeTaken.toFixed(2)} ms (${tilesScanned} tiles scanned)`);
+
     }
 }
 
