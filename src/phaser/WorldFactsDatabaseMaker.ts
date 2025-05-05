@@ -309,10 +309,11 @@ export class WorldFactsDatabaseMaker {
       par += " " + struct.type;
       par += " at the " + struct.absPosition + " of the selection box";
   
-      // Coordinates (adjust for bottom-left origin)
-      let x = struct.boundingBox.topLeft.minX;
-      let y = canvasHeight - struct.boundingBox.topLeft.minY; // Flip Y-axis
-      par += ` (selection box coordinates: (${x}, ${y}))`;
+      let topx = struct.boundingBox.topLeft.minX;
+      let topy = struct.boundingBox.topLeft.minY;
+      let bottomx = struct.boundingBox.bottomRight.maxX;
+      let bottomy = struct.boundingBox.bottomRight.maxY;
+      par += ` (selection box coordinates: (${topx}, ${topy}) to (${bottomx}, ${bottomy}))`;
       let width = struct.boundingBox.bottomRight.maxX - struct.boundingBox.topLeft.minX;
       let height = struct.boundingBox.bottomRight.maxY - struct.boundingBox.topLeft.minY;
       par += ` with a size of ${width}×${height}`;
