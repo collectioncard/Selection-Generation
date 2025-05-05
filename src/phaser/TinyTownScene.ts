@@ -214,12 +214,19 @@ export class TinyTownScene extends Phaser.Scene {
             const { x: localX, y: localY } = toSelectionCoordinates(startX, startY);
             selectionMessage = `User has selected a single tile at (${localX}, ${localY}) relative to the bottom-left of the selection box.`;
         } else {
-            selectionMessage =
-                `User has selected a rectangular region on the map starting at (0, 0) and ending at (${selectionWidth}, ${selectionHeight}). ` +
+            if (this.paragraphDescription!=''){
+                selectionMessage =
+                `User has selected a rectangular region that is this size: ${selectionWidth}x${selectionHeight}. THESE ARE NOT GLOBAL COORDINATES.` +
                 `This is the description of the selection, this is only for context purposes and to help you understand what is selected: ${this.paragraphDescription}. ` +
                 `Be sure to re-explain what is in the selection box. If there are objects in the selection, specify the characteristics of the object. ` +
                 `If no objects are inside the selection, then do not mention anything else.`;
-
+            }else{
+                selectionMessage =
+                `User has selected a rectangular region that is this size: ${selectionWidth}x${selectionHeight}. THESE ARE NOT GLOBAL COORDINATES ` +
+                `There are no notable points of interest in this selection` +
+                `Be sure to re-explain what is in the selection box. If there are objects in the selection, specify the characteristics of the object. ` +
+                `If no objects are inside the selection, then do not mention anything else.`;
+            }
             console.log(selectionMessage);
         }
     

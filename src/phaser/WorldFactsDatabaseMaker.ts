@@ -312,8 +312,10 @@ export class WorldFactsDatabaseMaker {
       // Coordinates (adjust for bottom-left origin)
       let x = struct.boundingBox.topLeft.minX;
       let y = canvasHeight - struct.boundingBox.topLeft.minY; // Flip Y-axis
-      par += ` (coordinates: (${x}, ${y}))`;
-  
+      par += ` (selection box coordinates: (${x}, ${y}))`;
+      let width = struct.boundingBox.bottomRight.maxX - struct.boundingBox.topLeft.minX;
+      let height = struct.boundingBox.bottomRight.maxY - struct.boundingBox.topLeft.minY;
+      par += ` with a size of ${width}×${height}`;
       // Substructures
       let hasSubstructures = false;
       for (let j = 0; j < struct.substructures.length; j++) {
