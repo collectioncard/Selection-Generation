@@ -14,7 +14,6 @@ import { boxPlacer } from './phaser/simpleTools/placeBox.ts';
 import { boxClear } from './phaser/simpleTools/clear.ts';
 
 let gameInstance: Phaser.Game | null = null;
-let selectedTileId = null;
 
 export function getScene(): TinyTownScene {
     if (!gameInstance) throw Error("Scene does not exist >:(")
@@ -119,3 +118,13 @@ document.querySelectorAll<HTMLButtonElement>('.tile-button').forEach(button => {
         }
     });
 });
+
+const modeButton = document.getElementById('mode-selection');
+if (modeButton) {
+    const scene = getScene();
+    modeButton.textContent = `Mode: ${scene.isPlacingMode ? 'Place' : 'Select'}`;
+    modeButton.addEventListener('click', () => {
+        scene.isPlacingMode = !scene.isPlacingMode;
+        modeButton!.textContent = `Mode: ${scene.isPlacingMode ? 'Place' : 'Select'}`;
+    });
+}

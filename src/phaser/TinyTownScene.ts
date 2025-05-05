@@ -18,8 +18,9 @@ export class TinyTownScene extends Phaser.Scene {
     
     //highlight box
     private highlightBox!: Phaser.GameObjects.Graphics;
+    public selectedTileId: number | null = null;
 
-    selectedTileId: number | null = null;
+    private isPlacingMode: boolean = true; // true = placing mode, false = selection mode
 
     // selection box properties
     private selectionBox!: Phaser.GameObjects.Graphics;
@@ -97,7 +98,7 @@ export class TinyTownScene extends Phaser.Scene {
         this.selectionBox = this.add.graphics();
         this.selectionBox.setDepth(100); 
         
-        this.input.on('pointerdown', this.startSelection, this);
+        // this.input.on('pointerdown', this.startSelection, this);
         this.input.on('pointermove', this.updateSelection, this);
         this.input.on('pointerup', this.endSelection, this);
 
@@ -126,17 +127,31 @@ export class TinyTownScene extends Phaser.Scene {
 
         //place the selected tile upon mouse click
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-            const x = Math.floor(pointer.x / (16 * this.SCALE));
-            const y = Math.floor(pointer.y / (16 * this.SCALE));
-          
-            if (
-              this.selectedTileId !== null &&
-              x >= 0 && x < this.CANVAS_WIDTH &&
-              y >= 0 && y < this.CANVAS_HEIGHT
-            ) {
-              this.featureLayer?.putTileAt(this.selectedTileId, x, y);
+            if (this.isPlacingMode) {
+                const x = Math.floor(pointer.x / (16 * this.SCALE));
+                const y = Math.floor(pointer.y / (16 * this.SCALE));
+              
+                if (
+                    this.selectedTileId !== null &&
+                    x >= 0 && x < this.CANVAS_WIDTH &&
+                    y >= 0 && y < this.CANVAS_HEIGHT
+                ) {
+                    this.featureLayer?.putTileAt(this.selectedTileId, x, y);
+                }
+            } else {
+                this.startSelection(pointer);
             }
-          });
+        });
+        
+        // create/refrence button to change modes (move to main later)
+        const modeButton = document.getElementById('mode-selection');
+        if (modeButton) {
+            modeButton.textContent = `Mode: ${this.isPlacingMode ? 'Place' : 'Select'}`;
+            modeButton.addEventListener('click', () => {
+                this.isPlacingMode = !this.isPlacingMode;
+                modeButton!.textContent = `Mode: ${this.isPlacingMode ? 'Place' : 'Select'}`;
+            });
+        }
     }
 
     startSelection(pointer: Phaser.Input.Pointer): void {
