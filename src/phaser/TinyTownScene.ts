@@ -65,9 +65,10 @@ export class TinyTownScene extends Phaser.Scene {
         tileGrid: [],
         featureGrid: [],
         combinedGrid: []
-      };    
-    private grassLayer : Phaser.Tilemaps.TilemapLayer | null = null;
-    private featureLayer : Phaser.Tilemaps.TilemapLayer | null = null;
+      };
+
+    private wf: WorldFactsDatabaseMaker | null = null;
+    private paragraphDescription: string = '';
 
     // set of tile indexes used for tile understanding
     private selectedTileSet = new Set<number>();
