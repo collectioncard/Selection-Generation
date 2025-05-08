@@ -106,145 +106,9 @@ document.getElementById('get-Coords')?.addEventListener('click', () => {
     }
 });
 
-const parentDropdown = document.getElementById('parent-dropdown') as HTMLSelectElement;
-const childDropdown = document.getElementById('child-dropdown') as HTMLSelectElement;
-  
-// Find a node by name in the tree
-function findNode(name: string, node: any): any | null {
-    if (node.Name === name) return node;
-    for (const child of node.Children) {
-        const found = findNode(name, child);
-        if (found) return found;
-    }
-    return null;
-}
-
-function updateHighlights() {
-    const scene = getScene();
-    const selChild  = childDropdown.value;
-    const selParent = parentDropdown.value;
-    let namesToHighlight: string[];
-  
-    if (selChild && selChild !== '__reset__') {
-        // highlight children of the currently selected child
-        const node = findNode(selChild, (scene as any).layerTree.Root);
-        namesToHighlight = node?.Children.map((c: any) => c.Name) || [];
-    } else if (selParent && selParent !== '__reset__') {
-        // highlight children of the currently selected parent
-        const node = findNode(selParent, (scene as any).layerTree.Root);
-        namesToHighlight = node?.Children.map((c: any) => c.Name) || [];
-    } else {
-        // highlight top-level layers
-        namesToHighlight = (scene as any).layerTree.Root.Children.map((c: any) => c.Name);
-    }
-  
-    scene.drawLayerHighlights(namesToHighlight);
-}
-  
-// Populate the parent dropdown with root‐level layers
-function populateParents() {
-    const scene = getScene() as any;
-    const tree = scene.layerTree;
-    const root = tree.Root;
-  
-    // reset both dropdowns
-    parentDropdown.innerHTML = `<option value="" selected disabled>-- Select Layer --</option>
-        <option value="__reset__">🔄 Reset View</option>`;
-    childDropdown.innerHTML  = `<option value="">-- Select Sub-Layer --</option>`;
-  
-    for (const child of root.Children) {
-        const opt = document.createElement('option');
-        opt.value = child.Name;
-        opt.text  = child.Name;
-        parentDropdown.add(opt);
-    }
-}
-// Populate children dropdown based on selected parent
-function populateChildren(parentName: string) {
-    const scene = getScene() as any;
-    const root = (scene.layerTree as any).Root;
-    const parentNode = findNode(parentName, root);
-  
-    childDropdown.innerHTML = `<option value="" selected disabled>-- Select Sub-Layer --</option>
-        <option value="__reset__">🔄 Reset View</option>`;
-    if (!parentNode) return;
-  
-    for (const child of parentNode.Children) {
-        const opt = document.createElement('option');
-        opt.value = child.Name;
-        opt.text  = child.Name;
-        childDropdown.add(opt);
-    }
-}
-  
-// When a parent is chosen, show its children
-parentDropdown.addEventListener('change', () => {
-    const s = getScene();
-    const val = parentDropdown.value;
-    if (val === '__reset__') {
-        s.resetView();
-        parentDropdown.value = '';
-        childDropdown.innerHTML = `<option value="" disabled>-- Select Sub-Layer --</option>`;
-        populateParents();
-        if (highlightMode) updateHighlights();
-        return;
-    }
-    if (!val) {
-        childDropdown.innerHTML = `<option value="" disabled>-- Select Sub-Layer --</option>`;
-    } else {
-        // select & zoom that layer
-        s.selectLayer(val);
-        s.zoomToLayer(val);
-
-        // clear any selection on the map
-        s.clearSelection(); 
-    
-        // then populate the children dropdown
-        populateChildren(val);
-    }
-    if (highlightMode) updateHighlights();
-});
-  
-// When a child is chosen, child becomes the new parent
-childDropdown.addEventListener('change', () => {
-    const s = getScene();
-    const val = childDropdown.value;
-    if (val === '__reset__') {
-        s.resetView();
-        populateParents();
-        if (highlightMode) updateHighlights();
-        return;
-    }
-    if (!val) return;
-  
-    parentDropdown.innerHTML = `<option value="" disabled>-- Select Layer --</option>
-    <option value="__reset__">🔄 Reset View</option>
-    <option value="${val}" selected>${val}</option>`;
-
-    // focus & zoom to the newly selected layer
-    s.selectLayer(val);
-    s.zoomToLayer(val);
-  
-    s.clearSelection(); 
-    
-    // Populate its own children
-    populateChildren(val);
-
-    if (highlightMode) updateHighlights();
-});
-  
-// Whenever the LLM creates a new layer, re-populate the top‐level list
-window.addEventListener('layerCreated', () => {
-    populateParents();
-    if (highlightMode) updateHighlights();
-});
-
-window.addEventListener('layerSelected', () => {
-    if (highlightMode) updateHighlights();
-});
-
 const toggleBtn = document.getElementById('toggle-highlights') as HTMLButtonElement;
 let highlightMode = false;
+let currentSelection: string | null = null
 
 toggleBtn.textContent = 'Enable Highlights';
 toggleBtn.addEventListener('click', () => {
@@ -257,6 +121,134 @@ toggleBtn.addEventListener('click', () => {
         updateHighlights();
     }
 });
+
+function updateHighlights() {
+    const scene = getScene() as any;
+    let namesToHighlight: string[];
+
+    if (currentSelection) {
+    // find the node for the selected layer
+    const node = findNode(currentSelection, scene.layerTree.Root);
+    namesToHighlight = node?.Children.map((c: any) => c.Name) || [];
+    } else {
+    // no selection → highlight top-level layers
+    namesToHighlight = scene.layerTree.Root.Children.map((c: any) => c.Name);
+    }
+
+    scene.drawLayerHighlights(namesToHighlight);
+}
+
+document.getElementById('reset-view')?.addEventListener('click', () => {
+    const s = getScene();
+    s.resetView();
+    s.clearSelection(); 
+    currentSelection = null;
+    buildLayerTree();
+    if (highlightMode) {
+        updateHighlights();
+    } else {
+        s.clearLayerHighlights();
+    }
+});
+
+const treeContainer = document.getElementById('layer-tree') as HTMLDivElement
+treeContainer.classList.add('hidden');
+
+const toggleTreeBtn = document.getElementById('toggle-tree') as HTMLButtonElement;
+toggleTreeBtn.addEventListener('click', () => {
+  const isHidden = treeContainer.classList.toggle('hidden');
+  toggleTreeBtn.textContent = isHidden ? '☰ Layers' : '✖ Close';
+});
+
+// Find a node by name in the tree
+function findNode(name: string, node: any): any | null {
+    if (node.Name === name) return node
+    for (const child of node.Children) {
+        const found = findNode(name, child)
+        if (found) return found
+    }
+    return null
+}
+
+// Create a <li> for a folder or file node
+function makeNodeElement(node: any): HTMLLIElement {
+    const li = document.createElement('li')
+    if (node.Children.length > 0) {
+        // Folder
+        li.classList.add('folder')
+        const label = document.createElement('div')
+        label.classList.add('folder-label')
+        label.textContent = node.Name    
+        li.appendChild(label)
+
+        const childUl = document.createElement('ul')
+        childUl.classList.add('nested')
+        node.Children.forEach((child: any) => {
+        childUl.appendChild(makeNodeElement(child))
+        })
+        li.appendChild(childUl)
+
+        label.addEventListener('click', () => {
+            //Zoom and show all its child layers
+            li.classList.toggle('open')
+            const scene = getScene()
+            scene.selectLayer(node.Name)
+            scene.zoomToLayer(node.Name)
+            scene.clearSelection()
+            currentSelection = node.Name
+            if (highlightMode) updateHighlights()
+            window.dispatchEvent(
+                new CustomEvent('layerSelected', { detail: node.Name })
+            )
+        })
+    } else {
+        // File
+        li.classList.add('file')
+        const label = document.createElement('div')
+        label.classList.add('file-label')
+        label.textContent = node.Name
+        li.appendChild(label)
+
+        label.addEventListener('click', () => {
+            //Zoom and show all its child layers
+            const scene = getScene()
+            scene.selectLayer(node.Name)
+            scene.zoomToLayer(node.Name)
+            scene.clearSelection()
+            currentSelection = node.Name
+            if (highlightMode) updateHighlights()
+            window.dispatchEvent(
+                new CustomEvent('layerSelected', { detail: node.Name })
+            )
+        })
+    }
+    return li
+}
+
+// Build the entire tree UI
+function buildLayerTree() {
+    const s    = getScene() as any
+    const root = s.layerTree.Root
+    treeContainer.innerHTML = ''
+    const ul = document.createElement('ul')
+    root.Children.forEach((child: any) => {
+        ul.appendChild(makeNodeElement(child))
+    })
+    treeContainer.appendChild(ul)
+    if (highlightMode) updateHighlights()
+}
+// Rebuild on layer changes or selection
+window.addEventListener('layerCreated', () => {
+    buildLayerTree();
+    if (highlightMode) updateHighlights();
+});
+
+window.addEventListener('layerSelected', () => {
+    if (highlightMode) updateHighlights();
+});
+
+buildLayerTree();
+
 
 function getRandEmoji(): string {
     let emoji = [':)', ':(', '>:(', ':D', '>:D', ':^D', ':(', ':D', 'O_O', ':P', '-_-', 'O_-', 'O_o', '𓆉', 'ジ', '⊂(◉‿◉)つ', '	(｡◕‿‿◕｡)', '(⌐■_■)', '<|°_°|>', '<|^.^|>', ':P', ':>', ':C', ':}', ':/', 'ʕ ● ᴥ ●ʔ','(˶ᵔ ᵕ ᵔ˶)'];

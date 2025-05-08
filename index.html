@@ -8,26 +8,21 @@
   </head>
   <body>
   <div id="control-buttons">
-    <div>
+    <div id ="sidebar">
       <button id="get-Coords">Get Selection</button>
       <button id="toggle-highlights">Highlights</button>
-      <button>b3</button>
+      <button id="reset-view">🔄 Reset View</button>
+      <button id="toggle-tree">☰ Layers</button>
       <button>b4</button>
       <div id="selection-controls">
         <button id="all-selection">Select All</button>
         <button id="clear-selected-tiles">Clear Tiles</button>
         <button id="clear-selection">Clear Selection</button>
-        <select id="parent-dropdown">
-          <option value="" disabled selected>-- Select Layer --</option>
-        </select>
-        
-        <select id="child-dropdown">
-          <option value="" disabled selected>-- Select Sub-Layer --</option>
-        </select>
       </div>
+      <div id="layer-tree" class="hidden"></div>
     </div>
   </div>
-    <div id="map"></div>
+  <div id="map"></div>
   <div id="llm-chat">
     <div>
       <ul id="chat-history"></ul>
