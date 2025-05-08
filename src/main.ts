@@ -20,6 +20,7 @@ let gameInstance: Phaser.Game | null = null;
 
 export function getScene(): TinyTownScene {
     if (!gameInstance) throw Error("Scene does not exist >:(")
+    console.log(gameInstance.scene.getScene('TinyTown'))
     return gameInstance.scene.getScene('TinyTown') as TinyTownScene;
 }
 
@@ -280,4 +281,5 @@ if (modeButton) {
         modeButton!.textContent = `Mode: ${scene.isPlacingMode ? 'Place' : 'Select'}`;
     });
 }
+// buildLayerTree();
 buildLayerTree();

@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "process-assets": "tile-extruder --tileWidth 16 --tileHeight 16 --margin 0 --spacing 0 --input ./public/phaserAssets/Tilemap_Packed.png --output ./public/phaserAssets/Tilemap_Extruded.png"
+    "process-assets": "tile-extruder --tileWidth 16 --tileHeight 16 --margin 0 --spacing 0 --input ./phaserAssets/Tilemap_Packed.png --output ./phaserAssets/Tilemap_Extruded.png"
   },
   "devDependencies": {
     "typescript": "~5.7.2",

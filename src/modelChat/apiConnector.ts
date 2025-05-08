@@ -2,7 +2,7 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 
 import { BaseMessage, ToolMessage, SystemMessage } from "@langchain/core/messages";
 
-const tilestuff = await fetch('../public/phaserAssets/Assets/TileDatabase.json')
+const tilestuff = await fetch('../phaserAssets/Assets/TileDatabase.json')
   .then(response => response.json());
 
 const sysPrompt = "You are an expert tile-based map designer. Your name is `Bobert`. The user will ask for you do to things" +
