@@ -389,9 +389,9 @@ export class TinyTownScene extends Phaser.Scene {
       
         const tw = 16 * this.SCALE;
         const th = 16 * this.SCALE;
-        const color     = 0x00ff00; // Color
+        const color     = 0x0000ff; // Color
         const alpha     = 0.5;      // opacity
-        const lineWidth = 4;        // line width
+        const lineWidth = 2;        // line width
       
         layerNames.forEach(name => {
             const info = this.namedLayers.get(name);
@@ -412,8 +412,8 @@ export class TinyTownScene extends Phaser.Scene {
             // draw the label in the top-right corner
             const label = this.add
                 .text(wx + wpx - 4, wy + 4, name, {
-                font: '28px sans-serif',
-                color: '#ff0000'
+                font: '12px sans-serif',
+                color: '#0000ff'
                 })
                 .setOrigin(1, 0)
                 .setDepth(151);
