@@ -83,8 +83,9 @@ export class TinyTownScene extends Phaser.Scene {
     preload() {
         this.load.image(
             'tiny_town_tiles',
-            'phaserAssets/Tilemap_Packed.png',
+            'phaserAssets/Tilemap_Extruded.png',
         );
+        
     }
 
     create() {
@@ -117,7 +118,10 @@ export class TinyTownScene extends Phaser.Scene {
             height: 20,
         });
 
-        const tileSheet = map.addTilesetImage('tiny_town_tiles')!;
+        // Load the extruded map to prevent bleeding when zooming in.
+        // This is generated with npm run process-assets
+        // this must be done for every new tileset
+        const tileSheet = map.addTilesetImage("tiny_town_tiles", "tiny_town_tiles", 16, 16, 1, 2)!;
 
         this.map = map;
         this.tileset = tileSheet;
