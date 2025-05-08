@@ -254,3 +254,28 @@ function getRandEmoji(): string {
     let emoji = [':)', ':(', '>:(', ':D', '>:D', ':^D', ':(', ':D', 'O_O', ':P', '-_-', 'O_-', 'O_o', '𓆉', 'ジ', '⊂(◉‿◉)つ', '	(｡◕‿‿◕｡)', '(⌐■_■)', '<|°_°|>', '<|^.^|>', ':P', ':>', ':C', ':}', ':/', 'ʕ ● ᴥ ●ʔ','(˶ᵔ ᵕ ᵔ˶)'];
     return emoji[Math.floor(Math.random() * emoji.length)];
 }
+
+
+// which tile is selected from the pallete
+document.querySelectorAll<HTMLButtonElement>('.tile-button').forEach(button => {
+    button.addEventListener('click', () => {
+        const idStr = button.getAttribute('data-tileid');
+        const id = idStr ? parseInt(idStr, 10) : null;
+        if (id !== null) {
+            const scene = getScene();
+            scene.setSelectedTileId(id);
+        } else {
+            console.error("Missing data-tileid on button:", button);
+        }
+    });
+});
+
+const modeButton = document.getElementById('mode-selection');
+if (modeButton) {
+    const scene = getScene();
+    modeButton.textContent = `Mode: ${scene.isPlacingMode ? 'Place' : 'Select'}`;
+    modeButton.addEventListener('click', () => {
+        scene.isPlacingMode = !scene.isPlacingMode;
+        modeButton!.textContent = `Mode: ${scene.isPlacingMode ? 'Place' : 'Select'}`;
+    });
+}
