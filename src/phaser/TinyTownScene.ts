@@ -43,7 +43,7 @@ export class TinyTownScene extends Phaser.Scene {
     private highlightBox!: Phaser.GameObjects.Graphics;
     public selectedTileId: number | null = null;
 
-    private isPlacingMode: boolean = true; // true = placing mode, false = selection mode
+    public isPlacingMode: boolean = true; // true = placing mode, false = selection mode
 
     // selection box properties
     private selectionBox!: Phaser.GameObjects.Graphics;

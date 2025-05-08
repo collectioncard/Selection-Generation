@@ -259,6 +259,7 @@ function getRandEmoji(): string {
 // which tile is selected from the pallete
 document.querySelectorAll<HTMLButtonElement>('.tile-button').forEach(button => {
     button.addEventListener('click', () => {
+        console.log("clicked")
         const idStr = button.getAttribute('data-tileid');
         const id = idStr ? parseInt(idStr, 10) : null;
         if (id !== null) {
