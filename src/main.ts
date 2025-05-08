@@ -246,9 +246,8 @@ window.addEventListener('layerCreated', () => {
 window.addEventListener('layerSelected', () => {
     if (highlightMode) updateHighlights();
 });
-
-buildLayerTree();
-
+console.log("wow1")
+console.log("wow2")
 
 function getRandEmoji(): string {
     let emoji = [':)', ':(', '>:(', ':D', '>:D', ':^D', ':(', ':D', 'O_O', ':P', '-_-', 'O_-', 'O_o', '𓆉', 'ジ', '⊂(◉‿◉)つ', '	(｡◕‿‿◕｡)', '(⌐■_■)', '<|°_°|>', '<|^.^|>', ':P', ':>', ':C', ':}', ':/', 'ʕ ● ᴥ ●ʔ','(˶ᵔ ᵕ ᵔ˶)'];
@@ -257,6 +256,7 @@ function getRandEmoji(): string {
 
 
 // which tile is selected from the pallete
+console.log("stuff" + document.querySelectorAll<HTMLButtonElement>('.tile-button'))
 document.querySelectorAll<HTMLButtonElement>('.tile-button').forEach(button => {
     button.addEventListener('click', () => {
         console.log("clicked")
@@ -280,3 +280,4 @@ if (modeButton) {
         modeButton!.textContent = `Mode: ${scene.isPlacingMode ? 'Place' : 'Select'}`;
     });
 }
+buildLayerTree();
