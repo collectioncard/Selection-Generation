@@ -67,3 +67,19 @@ document.addEventListener('chatResponseEnd', () => {
     chatInputField.focus();
 });
 
+export async function sendSystemMessage(message: string): Promise<void> {
+    const systemMessage = new HumanMessage(message);
+
+    document.dispatchEvent(new CustomEvent("chatResponseStart"));
+    let botResponseEntry: string;
+    try {
+        botResponseEntry = await getChatResponse([...chatHistory, systemMessage]);
+        addChatMessage(new AIMessage(botResponseEntry));
+    } catch (exception) {
+        const errorMessage = exception instanceof Error ? exception.message : "Unknown error";
+        addChatMessage(new AIMessage("Error: " + errorMessage));
+    } finally {
+        document.dispatchEvent(new CustomEvent("chatResponseEnd"));
+    }
+}
+

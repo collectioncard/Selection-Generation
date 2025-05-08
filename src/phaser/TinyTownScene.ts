@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
+import { sendSystemMessage } from '../modelChat/chatbox';
 
 import {Preload} from './Preload';
 import {HouseGenerator} from "./featureGenerators/houseGenerator";
 import {completedSection, generatorInput} from "./featureGenerators/GeneratorInterface.ts";
 import {Tree} from "./TreeStructure.ts"
+import { WorldFactsDatabaseMaker } from './WorldFactsDatabaseMaker.ts';
 
 interface TinyTownSceneData {
     dict: { [key: number]: string };
@@ -16,7 +18,8 @@ export class TinyTownScene extends Phaser.Scene {
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
     public readonly CANVAS_HEIGHT = 25; // ^^^
-    
+    public readonly TILE_SIZE = 16; //Size in pixels
+
     ////DEBUG / FEATURE FLAGS////
     private readonly allowOverwriting: boolean = false; // Allows LLM to overwrite placed tiles
     
@@ -62,7 +65,9 @@ export class TinyTownScene extends Phaser.Scene {
         tileGrid: [],
         featureGrid: [],
         combinedGrid: []
-      };
+      };    
+    private grassLayer : Phaser.Tilemaps.TilemapLayer | null = null;
+    private featureLayer : Phaser.Tilemaps.TilemapLayer | null = null;
 
     // set of tile indexes used for tile understanding
     private selectedTileSet = new Set<number>();
@@ -263,15 +268,60 @@ export class TinyTownScene extends Phaser.Scene {
         this.isSelecting = false;
         this.collectSelectedTiles();
         
-        // loop through selectedTileSet once it works
         const selectedDescriptions = [];
         for (let tileID of this.selectedTileSet) {
             const description = this.tileDictionary[tileID];
             selectedDescriptions.push({ tileID, description });
         }
-        // selectedDescriptions is all the unique tiles and their descriptions
-        console.log(selectedDescriptions);
+        
+        this.wf = new WorldFactsDatabaseMaker(this.selectedTiles.combinedGrid, this.selectedTiles.dimensions.width, this.selectedTiles.dimensions.height, this.TILE_SIZE);
+		this.wf.getWorldFacts();
+
+		this.paragraphDescription = this.wf.getDescriptionParagraph();
+		console.log(this.paragraphDescription);
+
+        const startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
+        const startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
+        const endX = Math.max(this.selectionStart.x, this.selectionEnd.x);
+        const endY = Math.max(this.selectionStart.y, this.selectionEnd.y);
+
+        // These define the height and width of the selection box
+        const selectionWidth = endX - startX;
+        const selectionHeight = endY - startY;
+
+        // Helper to convert any global (x, y) to selection-local coordinates
+        const toSelectionCoordinates = (x: number, y: number) => {
+            return {
+                x: x - startX,
+                y: endY - y // Flip y-axis relative to bottom-left
+            };
+        };
+
+        let selectionMessage: string;
+
+        if (startX === endX && startY === endY) {
+            const { x: localX, y: localY } = toSelectionCoordinates(startX, startY);
+            selectionMessage = `User has selected a single tile at (${localX}, ${localY}) relative to the bottom-left of the selection box.`;
+        } else {
+            if (this.paragraphDescription!=''){
+                selectionMessage =
+                `User has selected a rectangular region that is this size: ${selectionWidth}x${selectionHeight}. THESE ARE NOT GLOBAL COORDINATES.` +
+                `This is the description of the selection, this is only for context purposes and to help you understand what is selected: ${this.paragraphDescription}. ` +
+                `Be sure to re-explain what is in the selection box. If there are objects in the selection, specify the characteristics of the object. ` +
+                `If no objects are inside the selection, then do not mention anything else.`;
+            }else{
+                selectionMessage =
+                `User has selected a rectangular region that is this size: ${selectionWidth}x${selectionHeight}. THESE ARE NOT GLOBAL COORDINATES ` +
+                `There are no notable points of interest in this selection` +
+                `Be sure to re-explain what is in the selection box. If there are objects in the selection, specify the characteristics of the object. ` +
+                `If no objects are inside the selection, then do not mention anything else.`;
+            }
+            console.log(selectionMessage);
+        }
+    
+        sendSystemMessage(selectionMessage);
     }
+    
     
     drawSelectionBox() {
         this.selectionBox.clear();
