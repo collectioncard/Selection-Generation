@@ -118,5 +118,13 @@ export class Tree {
             this.printTree(childNode);
         }
     }
+
+    getRoot() {
+        return this.Root;
+    }
+
+    getChildren(currNode: Node) {
+        return currNode.Children;
+    }
 }
 
