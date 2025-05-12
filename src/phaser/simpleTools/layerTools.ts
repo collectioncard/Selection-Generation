@@ -82,3 +82,22 @@ export class SelectLayerTool {
 //     }
 //   );
 // }
+
+export class RenameLayerTool {
+  constructor(private getScene: () => TinyTownScene) {}
+
+  toolCall = tool(
+    async ({ oldName, newName }: { oldName: string; newName: string }) => {
+      this.getScene().renameLayer(oldName, newName);
+      return `Renamed layer "${oldName}" → "${newName}".`;
+    },
+    {
+      name: "rename_layer",
+      schema: z.object({
+        oldName: z.string().describe("Current name of the layer"),
+        newName: z.string().describe("New name for the layer"),
+      }),
+      description: "Rename an existing layer",
+    }
+  );
+}

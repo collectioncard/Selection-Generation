@@ -15,6 +15,7 @@ import { boxClear } from './phaser/simpleTools/clear.ts';
 import { NameLayerTool } from './phaser/simpleTools/layerTools.ts';
 // import { MoveLayerTool } from './phaser/simpleTools/layerTools.ts';
 import { SelectLayerTool } from './phaser/simpleTools/layerTools.ts';
+import { RenameLayerTool } from './phaser/simpleTools/layerTools.ts';
 
 let gameInstance: Phaser.Game | null = null;
 
@@ -48,6 +49,7 @@ const generators = {
     name_layer: new NameLayerTool(getScene),
     // move_layer: new MoveLayerTool(getScene),
     select_layer: new SelectLayerTool(getScene),
+    rename_layer: new RenameLayerTool(getScene),
 }
 
 Object.values(generators).forEach(generator => {
@@ -159,6 +161,28 @@ document.getElementById('reset-view')?.addEventListener('click', () => {
     }
 });
 
+const renameBtn = document.getElementById('rename-layer') as HTMLButtonElement;
+
+renameBtn.addEventListener('click', () => {
+    if (!currentSelection) {
+        return alert('Please select a layer first (click it in the tree)');
+    }
+    const newName = prompt(
+        `Enter new name for layer "${currentSelection}":`
+    )?.trim();
+    if (!newName) return;
+
+    // 1) Call the scene (or tool) to rename
+    getScene().renameLayer(currentSelection, newName);
+
+    // 2) Update our “selected” pointer
+    currentSelection = newName;
+
+    // 3) Rebuild the tree and re-highlight
+    buildLayerTree();
+    if (highlightMode) updateHighlights();
+});
+
 const treeContainer = document.getElementById('layer-tree') as HTMLDivElement
 treeContainer.classList.add('hidden');
 
@@ -256,6 +280,20 @@ window.addEventListener('layerSelected', () => {
 });
 console.log("wow1")
 console.log("wow2")
+
+window.addEventListener('layerRenamed', (e: Event) => {
+    const { oldName, newName } = (e as CustomEvent).detail;
+    console.log(`Layer renamed: ${oldName} → ${newName}`);
+    buildLayerTree();
+
+    // if we’re in highlight mode, refresh highlights now that names changed
+    if (highlightMode) {
+        updateHighlights();
+    }
+});
+
+buildLayerTree();
+
 
 function getRandEmoji(): string {
     let emoji = [':)', ':(', '>:(', ':D', '>:D', ':^D', ':(', ':D', 'O_O', ':P', '-_-', 'O_-', 'O_o', '𓆉', 'ジ', '⊂(◉‿◉)つ', '	(｡◕‿‿◕｡)', '(⌐■_■)', '<|°_°|>', '<|^.^|>', ':P', ':>', ':C', ':}', ':/', 'ʕ ● ᴥ ●ʔ','(˶ᵔ ᵕ ᵔ˶)'];

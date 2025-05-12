@@ -734,6 +734,26 @@ export class TinyTownScene extends Phaser.Scene {
 
     }
 
+    public renameLayer(oldName: string, newName: string) {
+        // 1) Update the Phaser layer
+        const info = this.namedLayers.get(oldName);
+        if (!info) {
+            console.warn(`Layer "${oldName}" not found.`);
+            return;
+        }
+        this.namedLayers.delete(oldName);
+        info.layer.name = newName;
+        this.namedLayers.set(newName, info);
+
+        // 2) Update the tree structure
+        this.layerTree.rename(oldName, newName);
+
+        // 3) Notify everyone
+        window.dispatchEvent(new CustomEvent('layerRenamed', {
+            detail: { oldName, newName }
+        }));
+    }
+
     putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false){
         //console.groupCollapsed(`Placing: ${generatedData.name} (Override: ${worldOverride}, Undo: ${acceptneg}, AllowOverwrite: ${this.allowOverwriting})`);
 
