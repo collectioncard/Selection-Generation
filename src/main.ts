@@ -167,6 +167,12 @@ document.getElementById('reset-view')?.addEventListener('click', () => {
     }
 });
 
+const deleteModal       = document.getElementById('delete-modal')      as HTMLDivElement;
+const modalLayerName    = document.getElementById('modal-layer-name') as HTMLSpanElement;
+const btnDeleteOnly     = document.getElementById('btn-delete-only')     as HTMLButtonElement;
+const btnDeleteWith     = document.getElementById('btn-delete-with-assets') as HTMLButtonElement;
+const btnDeleteCancel   = document.getElementById('btn-delete-cancel')   as HTMLButtonElement;
+
 const ctxMenu   = document.getElementById('layer-context-menu') as HTMLDivElement
 const ctxRename = document.getElementById('ctx-rename')        as HTMLLIElement
 const ctxDelete = document.getElementById('ctx-delete')        as HTMLLIElement
@@ -174,41 +180,58 @@ let contextTarget: string | null = null
 
 // hide menu on outside click
 document.addEventListener('click', () => {
-  ctxMenu.style.display = 'none'
+    ctxMenu.style.display = 'none'
 })
 
 // Handle rename from context menu
 ctxRename.addEventListener('click', () => {
-  if (!contextTarget) return
-  const newName = prompt(`Rename "${contextTarget}" to:`)?.trim()
-  if (newName) {
-    getScene().renameLayer(contextTarget, newName)
-    currentSelection = newName
-    buildLayerTree()
-    if (highlightMode) updateHighlights()
-  }
-  ctxMenu.style.display = 'none'
+    if (!contextTarget) return
+    const newName = prompt(`Rename "${contextTarget}" to:`)?.trim()
+    if (newName) {
+        getScene().renameLayer(contextTarget, newName)
+        currentSelection = newName
+        buildLayerTree()
+        if (highlightMode) updateHighlights()
+    }
+    ctxMenu.style.display = 'none'
 })
 
 // Handle delete from context menu
 ctxDelete.addEventListener('click', () => {
-  if (!contextTarget) return
-  if (confirm(`Delete "${contextTarget}" and all its sublayers?`)) {
-    getScene().deleteLayer(contextTarget)
-    currentSelection = null
-    buildLayerTree()
-    if (highlightMode) updateHighlights()
-  }
-  ctxMenu.style.display = 'none'
+    if (!contextTarget) return
+    modalLayerName.textContent = contextTarget;
+    deleteModal.classList.remove('hidden');
 })
+
+btnDeleteOnly.addEventListener('click', () => {
+    getScene().deleteLayerOnly(contextTarget!);
+    cleanupAfterDelete();
+});
+
+btnDeleteWith.addEventListener('click', () => {
+    getScene().deleteLayer(contextTarget!);
+    cleanupAfterDelete();
+});
+
+btnDeleteCancel.addEventListener('click', () => {
+    deleteModal.classList.add('hidden');
+});
+
+function cleanupAfterDelete() {
+    deleteModal.classList.add('hidden');
+    currentSelection = null;
+    getScene().clearSelection();
+    buildLayerTree();
+    if (highlightMode) updateHighlights();
+}
 
 const treeContainer = document.getElementById('layer-tree') as HTMLDivElement
 treeContainer.classList.add('hidden');
 
 const toggleTreeBtn = document.getElementById('toggle-tree') as HTMLButtonElement;
 toggleTreeBtn.addEventListener('click', () => {
-  const isHidden = treeContainer.classList.toggle('hidden');
-  toggleTreeBtn.textContent = isHidden ? '☰ Layers' : '✖ Close';
+    const isHidden = treeContainer.classList.toggle('hidden');
+    toggleTreeBtn.textContent = isHidden ? '☰ Layers' : '✖ Close';
 });
 
 // Find a node by name in the tree

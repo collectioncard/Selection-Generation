@@ -200,6 +200,16 @@
       <li id="ctx-delete">🗑️ Delete Layer</li>
     </ul>
   </div>
+  <div id="delete-modal" class="modal hidden">
+    <div class="modal-content">
+      <p>How would you like to delete “<span id="modal-layer-name"></span>”?</p>
+      <div class="modal-buttons">
+        <button id="btn-delete-only">Remove Layer Only</button>
+        <button id="btn-delete-with-assets">Remove Layer & Assets</button>
+        <button id="btn-delete-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
   <div id="map"></div>
   <div id="llm-chat">
     <div>

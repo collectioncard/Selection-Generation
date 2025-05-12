@@ -751,6 +751,20 @@ export class TinyTownScene extends Phaser.Scene {
         }));
     }
 
+    public deleteLayerOnly(name: string) {
+        const node = this.layerTree.getNode(name);
+        if (!node) return;
+        for (const child of [...node.Children]) {
+        this.deleteLayerOnly(child.Name);
+        }
+
+        this.namedLayers.delete(name);
+
+        this.layerTree.deleteNode(name);
+
+        window.dispatchEvent(new CustomEvent('layerDeleted', { detail: name }));
+    }
+
     // Recursively remove a layer and all its children. 
     public deleteLayer(name: string) {
         const node = this.layerTree.getNode(name);
