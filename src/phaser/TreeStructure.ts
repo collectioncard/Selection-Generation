@@ -137,5 +137,14 @@ export class Tree {
     getChildren(currNode: Node) {
         return currNode.Children;
     }
+
+    // Expose private findNode so callers can grab a Node object.
+    public getNode(layerName: string): Node | null {
+        return this.findNode(layerName, this.Root);
+    }
+
+    public deleteNode(layerName: string): boolean {
+        return this.delete(layerName);
+    }
 }
 

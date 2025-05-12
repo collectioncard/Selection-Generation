@@ -16,6 +16,7 @@ import { NameLayerTool } from './phaser/simpleTools/layerTools.ts';
 // import { MoveLayerTool } from './phaser/simpleTools/layerTools.ts';
 import { SelectLayerTool } from './phaser/simpleTools/layerTools.ts';
 import { RenameLayerTool } from './phaser/simpleTools/layerTools.ts';
+import { DeleteLayerTool } from './phaser/simpleTools/layerTools.ts';
 
 let gameInstance: Phaser.Game | null = null;
 
@@ -50,6 +51,7 @@ const generators = {
     // move_layer: new MoveLayerTool(getScene),
     select_layer: new SelectLayerTool(getScene),
     rename_layer: new RenameLayerTool(getScene),
+    delete_layer: new DeleteLayerTool(getScene),
 }
 
 Object.values(generators).forEach(generator => {
@@ -183,6 +185,24 @@ renameBtn.addEventListener('click', () => {
     if (highlightMode) updateHighlights();
 });
 
+const deleteBtn = document.getElementById('delete-layer') as HTMLButtonElement;
+deleteBtn.addEventListener('click', () => {
+  if (!currentSelection) {
+    return alert('Please click a layer in the tree first to delete it.');
+  }
+  if (!confirm(`Really delete layer "${currentSelection}" and all its children?`)) {
+    return;
+  }
+
+  getScene().deleteLayer(currentSelection);
+
+  currentSelection = null;
+  getScene().clearSelection();
+
+  buildLayerTree();
+  if (highlightMode) updateHighlights();
+});
+
 const treeContainer = document.getElementById('layer-tree') as HTMLDivElement
 treeContainer.classList.add('hidden');
 
@@ -290,6 +310,12 @@ window.addEventListener('layerRenamed', (e: Event) => {
     if (highlightMode) {
         updateHighlights();
     }
+});
+
+window.addEventListener('layerDeleted', (e: Event) => {
+    console.log('layerDeleted:', (e as CustomEvent).detail);
+    buildLayerTree();
+    if (highlightMode) updateHighlights();
 });
 
 buildLayerTree();

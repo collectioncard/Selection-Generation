@@ -47,6 +47,24 @@ export class SelectLayerTool {
     );
 }
 
+export class DeleteLayerTool {
+  constructor(private getScene: () => TinyTownScene) {}
+
+  toolCall = tool(
+    async ({ layerName }: { layerName: string }) => {
+      this.getScene().deleteLayer(layerName);
+      return `Deleted layer "${layerName}" and all its sublayers.`;
+    },
+    {
+      name: "delete_layer",
+      schema: z.object({
+        layerName: z.string().describe("Name of the layer to delete"),
+      }),
+      description: "Delete a layer and all its sub-layers",
+    }
+  );
+}
+
 // /**
 //  * Moves all tiles in an existing named layer by dx, dy in tile‐space.
 //  */

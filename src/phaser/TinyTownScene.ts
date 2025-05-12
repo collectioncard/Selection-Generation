@@ -735,7 +735,6 @@ export class TinyTownScene extends Phaser.Scene {
     }
 
     public renameLayer(oldName: string, newName: string) {
-        // 1) Update the Phaser layer
         const info = this.namedLayers.get(oldName);
         if (!info) {
             console.warn(`Layer "${oldName}" not found.`);
@@ -745,13 +744,41 @@ export class TinyTownScene extends Phaser.Scene {
         info.layer.name = newName;
         this.namedLayers.set(newName, info);
 
-        // 2) Update the tree structure
         this.layerTree.rename(oldName, newName);
 
-        // 3) Notify everyone
         window.dispatchEvent(new CustomEvent('layerRenamed', {
             detail: { oldName, newName }
         }));
+    }
+
+    // Recursively remove a layer and all its children. 
+    public deleteLayer(name: string) {
+        const node = this.layerTree.getNode(name);
+        if (!node) {
+            console.warn(`Cannot delete layer "${name}", not found.`);
+            return;
+        }
+
+        for (const child of [...node.Children]) {
+            this.deleteLayer(child.Name);
+        }
+
+        const info = this.namedLayers.get(name);
+        if (info) {
+            const { x, y, width, height } = info.bounds;
+            const tiles = info.layer.getTilesWithin(x, y, width, height);
+            for (const tile of tiles) {
+                info.layer.removeTileAt(tile.x, tile.y);
+            }
+            info.layer.destroy(true);
+            this.namedLayers.delete(name);
+        }
+
+        this.layerTree.deleteNode(name);
+
+        window.dispatchEvent(
+            new CustomEvent('layerDeleted', { detail: name })
+        );
     }
 
     putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false){
