@@ -118,13 +118,3 @@ document.querySelectorAll<HTMLButtonElement>('.tile-button').forEach(button => {
         }
     });
 });
-
-const modeButton = document.getElementById('mode-selection');
-if (modeButton) {
-    const scene = getScene();
-    modeButton.textContent = `Mode: ${scene.isPlacingMode ? 'Place' : 'Select'}`;
-    modeButton.addEventListener('click', () => {
-        scene.isPlacingMode = !scene.isPlacingMode;
-        modeButton!.textContent = `Mode: ${scene.isPlacingMode ? 'Place' : 'Select'}`;
-    });
-}

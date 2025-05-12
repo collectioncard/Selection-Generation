@@ -155,3 +155,8 @@ details summary {
   font-weight: bold;
   padding: 6px 0;
 }
+
+.active-tool {
+  border: 2px solid yellow;
+  background-color: #4bdbffa5;
+}

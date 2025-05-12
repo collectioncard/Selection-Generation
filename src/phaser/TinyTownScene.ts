@@ -8,6 +8,8 @@ interface TinyTownSceneData {
     dict: { [key: number]: string };
 }
 
+type ToolMode = 'place' | 'select' | 'eyedropper' | 'erase' | 'fill';
+
 export class TinyTownScene extends Phaser.Scene {
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
@@ -20,7 +22,7 @@ export class TinyTownScene extends Phaser.Scene {
     private highlightBox!: Phaser.GameObjects.Graphics;
     public selectedTileId: number | null = null;
 
-    private isPlacingMode: boolean = true; // true = placing mode, false = selection mode
+    private currentTool: ToolMode = 'place'; // default tool
 
     // selection box properties
     private selectionBox!: Phaser.GameObjects.Graphics;
@@ -97,10 +99,6 @@ export class TinyTownScene extends Phaser.Scene {
         // -------------> DO STUFF HERE <----------------
         this.selectionBox = this.add.graphics();
         this.selectionBox.setDepth(100); 
-        
-        // this.input.on('pointerdown', this.startSelection, this);
-        this.input.on('pointermove', this.updateSelection, this);
-        this.input.on('pointerup', this.endSelection, this);
 
         //Feature generator demo -- Erase if you don't need this
         // 1. Create a generatorInput obj with a 2D array the size of the feature you want. (min is 5x5 for most I think?)
@@ -122,36 +120,27 @@ export class TinyTownScene extends Phaser.Scene {
         this.highlightBox = this.add.graphics();
         this.highlightBox.setDepth(101);  // Ensure it's on top of everything
 
-        // Setup pointer movement
-        this.input.on('pointermove', this.highlightTile, this);
-
-        //place the selected tile upon mouse click
-        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-            if (this.isPlacingMode) {
-                const x = Math.floor(pointer.x / (16 * this.SCALE));
-                const y = Math.floor(pointer.y / (16 * this.SCALE));
-              
-                if (
-                    this.selectedTileId !== null &&
-                    x >= 0 && x < this.CANVAS_WIDTH &&
-                    y >= 0 && y < this.CANVAS_HEIGHT
-                ) {
-                    this.featureLayer?.putTileAt(this.selectedTileId, x, y);
-                }
-            } else {
-                this.startSelection(pointer);
-            }
-        });
+        this.updatePointer();
         
         // create/refrence button to change modes (move to main later)
-        const modeButton = document.getElementById('mode-selection');
-        if (modeButton) {
-            modeButton.textContent = `Mode: ${this.isPlacingMode ? 'Place' : 'Select'}`;
-            modeButton.addEventListener('click', () => {
-                this.isPlacingMode = !this.isPlacingMode;
-                modeButton!.textContent = `Mode: ${this.isPlacingMode ? 'Place' : 'Select'}`;
+        document.querySelectorAll<HTMLButtonElement>('#tool-buttons button').forEach(button => {
+            button.addEventListener('click', () => {
+                const selected = button.getAttribute('data-tool') as ToolMode;
+                this.currentTool = selected;
+                this.updatePointer();
+                this.updateToolUI();
             });
-        }
+        });
+
+        document.querySelectorAll('[data-tool]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const selectedTool = btn.getAttribute('data-tool') as ToolMode;
+                this.currentTool = selectedTool;
+                this.updateToolUI();
+                console.log(`Tool changed to: ${this.currentTool}`);
+            });
+        });
+        this.updateToolUI();        
     }
 
     startSelection(pointer: Phaser.Input.Pointer): void {
@@ -219,6 +208,10 @@ export class TinyTownScene extends Phaser.Scene {
         }
         // selectedDescriptions is all the unique tiles and their descriptions
         console.log(selectedDescriptions);
+
+        if (this.currentTool === 'fill') {
+            this.fillSelectionWithTile();
+        }        
     }
     
     drawSelectionBox() {
@@ -455,6 +448,79 @@ export class TinyTownScene extends Phaser.Scene {
         this.selectedTileId = id;
         console.log("Selected tile ID:", id);
     }
+
+    updatePointer() {
+        this.input.removeAllListeners();
+
+        this.input.on('pointermove', this.highlightTile, this);
+        this.input.on('pointermove', this.updateSelection, this);
+        this.input.on('pointerup', this.endSelection, this);
+    
+        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            const x = Math.floor(pointer.x / (16 * this.SCALE));
+            const y = Math.floor(pointer.y / (16 * this.SCALE));
+    
+            if (x < 0 || x >= this.CANVAS_WIDTH || y < 0 || y >= this.CANVAS_HEIGHT) return;
+    
+            switch (this.currentTool) {
+                case 'place':
+                    if (this.selectedTileId !== null) {
+                        this.featureLayer?.putTileAt(this.selectedTileId, x, y);
+                    }
+                    break;
+    
+                case 'eyedropper': {
+                    const tile = this.featureLayer?.getTileAt(x, y);
+                    if (tile) {
+                        this.selectedTileId = tile.index;
+                    }
+                    break;
+                }
+    
+                case 'erase':
+                    this.featureLayer?.removeTileAt(x, y);
+                    break;
+    
+                case 'select':
+                    this.startSelection(pointer);
+                    break;
+
+                case 'fill':
+                    this.startSelection(pointer);
+                    break;
+            }
+        });
+    }
+    
+    private fillSelectionWithTile(): void {
+        if (!this.selectedTileId || !this.featureLayer) return;
+    
+        const startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
+        const startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
+        const endX = Math.max(this.selectionStart.x, this.selectionEnd.x);
+        const endY = Math.max(this.selectionStart.y, this.selectionEnd.y);
+    
+        for (let y = startY; y <= endY; y++) {
+            for (let x = startX; x <= endX; x++) {
+                this.featureLayer.putTileAt(this.selectedTileId, x, y);
+            }
+        }
+    
+        console.log(`Filled (${endX - startX + 1} x ${endY - startY + 1}) area with tile ID ${this.selectedTileId}`);
+    }
+    
+
+    private updateToolUI() {
+        const buttons = document.querySelectorAll('[data-tool]');
+        buttons.forEach(btn => {
+            const tool = btn.getAttribute('data-tool');
+            if (tool === this.currentTool) {
+                btn.classList.add('active-tool'); // Ensure you have this CSS class defined
+            } else {
+                btn.classList.remove('active-tool');
+            }
+        });
+    }    
 }
 
 export function createGame(attachPoint: HTMLDivElement) {
