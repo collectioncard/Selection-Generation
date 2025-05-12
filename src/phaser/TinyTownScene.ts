@@ -535,6 +535,8 @@ export class TinyTownScene extends Phaser.Scene {
     pruneBrokenTrees(changed?: { x: number; y: number }[]): void {
         if (!this.featureLayer) return;
     
+        const EXPANSION = 2; // Expand the search area by this many tiles
+
         let minX = 0;
         let minY = 0;
         let maxX = this.featureLayer.layer.width  - 1;
@@ -542,12 +544,14 @@ export class TinyTownScene extends Phaser.Scene {
         //const time = performance.now();
         //let tilesScanned = 0;
     
-        if (changed && changed.length) {
-        minX = Math.max(0, Math.min(...changed.map(c => c.x)) - 1);
-        minY = Math.max(0, Math.min(...changed.map(c => c.y)) - 1);
-        maxX = Math.min(this.featureLayer.layer.width  - 1, Math.max(...changed.map(c => c.x)) + 1);
-        maxY = Math.min(this.featureLayer.layer.height - 1, Math.max(...changed.map(c => c.y)) + 1);
-        }
+    if (changed && changed.length) {
+        const xs = changed.map(c => c.x);
+        const ys = changed.map(c => c.y);
+        minX = Math.max(0, Math.min(...xs) - EXPANSION);
+        minY = Math.max(0, Math.min(...ys) - EXPANSION);
+        maxX = Math.min(this.featureLayer.layer.width  - 1, Math.max(...xs) + EXPANSION);
+        maxY = Math.min(this.featureLayer.layer.height - 1, Math.max(...ys) + EXPANSION);
+    }
     
         const toRemove: { x: number; y: number }[] = [];
     
