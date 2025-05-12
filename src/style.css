@@ -256,3 +256,31 @@ details summary {
   font-weight: bold;
   padding: 6px 0;
 }
+
+/* context menu */
+#layer-context-menu {
+  position: absolute;
+  background-color: #1a1a1a;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 0.25em 0;
+  z-index: 2000;
+  display: none;
+  min-width: 140px;
+}
+
+#layer-context-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#layer-context-menu li {
+  padding: 0.4em 1em;
+  cursor: pointer;
+  color: rgba(255,255,255,0.9);
+}
+
+#layer-context-menu li:hover {
+  background-color: #333;
+}

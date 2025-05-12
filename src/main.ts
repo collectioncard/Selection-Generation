@@ -139,12 +139,16 @@ function updateHighlights() {
     let namesToHighlight: string[];
 
     if (currentSelection) {
-    // find the node for the selected layer
-    const node = findNode(currentSelection, scene.layerTree.Root);
-    namesToHighlight = node?.Children.map((c: any) => c.Name) || [];
+        const node = findNode(currentSelection, scene.layerTree.Root);
+        const kids = node?.Children || [];
+
+        if (kids.length > 0) {
+        namesToHighlight = kids.map((c: any) => c.Name);
+        } else {
+        namesToHighlight = [ currentSelection ];
+        }
     } else {
-    // no selection → highlight top-level layers
-    namesToHighlight = scene.layerTree.Root.Children.map((c: any) => c.Name);
+        namesToHighlight = scene.layerTree.Root.Children.map((c: any) => c.Name);
     }
 
     scene.drawLayerHighlights(namesToHighlight);
@@ -163,45 +167,40 @@ document.getElementById('reset-view')?.addEventListener('click', () => {
     }
 });
 
-const renameBtn = document.getElementById('rename-layer') as HTMLButtonElement;
+const ctxMenu   = document.getElementById('layer-context-menu') as HTMLDivElement
+const ctxRename = document.getElementById('ctx-rename')        as HTMLLIElement
+const ctxDelete = document.getElementById('ctx-delete')        as HTMLLIElement
+let contextTarget: string | null = null
 
-renameBtn.addEventListener('click', () => {
-    if (!currentSelection) {
-        return alert('Please select a layer first (click it in the tree)');
-    }
-    const newName = prompt(
-        `Enter new name for layer "${currentSelection}":`
-    )?.trim();
-    if (!newName) return;
+// hide menu on outside click
+document.addEventListener('click', () => {
+  ctxMenu.style.display = 'none'
+})
 
-    // 1) Call the scene (or tool) to rename
-    getScene().renameLayer(currentSelection, newName);
-
-    // 2) Update our “selected” pointer
-    currentSelection = newName;
-
-    // 3) Rebuild the tree and re-highlight
-    buildLayerTree();
-    if (highlightMode) updateHighlights();
-});
-
-const deleteBtn = document.getElementById('delete-layer') as HTMLButtonElement;
-deleteBtn.addEventListener('click', () => {
-  if (!currentSelection) {
-    return alert('Please click a layer in the tree first to delete it.');
+// Handle rename from context menu
+ctxRename.addEventListener('click', () => {
+  if (!contextTarget) return
+  const newName = prompt(`Rename "${contextTarget}" to:`)?.trim()
+  if (newName) {
+    getScene().renameLayer(contextTarget, newName)
+    currentSelection = newName
+    buildLayerTree()
+    if (highlightMode) updateHighlights()
   }
-  if (!confirm(`Really delete layer "${currentSelection}" and all its children?`)) {
-    return;
+  ctxMenu.style.display = 'none'
+})
+
+// Handle delete from context menu
+ctxDelete.addEventListener('click', () => {
+  if (!contextTarget) return
+  if (confirm(`Delete "${contextTarget}" and all its sublayers?`)) {
+    getScene().deleteLayer(contextTarget)
+    currentSelection = null
+    buildLayerTree()
+    if (highlightMode) updateHighlights()
   }
-
-  getScene().deleteLayer(currentSelection);
-
-  currentSelection = null;
-  getScene().clearSelection();
-
-  buildLayerTree();
-  if (highlightMode) updateHighlights();
-});
+  ctxMenu.style.display = 'none'
+})
 
 const treeContainer = document.getElementById('layer-tree') as HTMLDivElement
 treeContainer.classList.add('hidden');
@@ -236,7 +235,7 @@ function makeNodeElement(node: any): HTMLLIElement {
         const childUl = document.createElement('ul')
         childUl.classList.add('nested')
         node.Children.forEach((child: any) => {
-        childUl.appendChild(makeNodeElement(child))
+            childUl.appendChild(makeNodeElement(child))
         })
         li.appendChild(childUl)
 
@@ -252,6 +251,14 @@ function makeNodeElement(node: any): HTMLLIElement {
             window.dispatchEvent(
                 new CustomEvent('layerSelected', { detail: node.Name })
             )
+        })
+
+        label.addEventListener('contextmenu', ev => {
+            ev.preventDefault()
+            contextTarget = node.Name
+            ctxMenu.style.top  = ev.clientY + 'px'
+            ctxMenu.style.left = ev.clientX + 'px'
+            ctxMenu.style.display = 'block'
         })
     } else {
         // File
@@ -272,6 +279,14 @@ function makeNodeElement(node: any): HTMLLIElement {
             window.dispatchEvent(
                 new CustomEvent('layerSelected', { detail: node.Name })
             )
+        })
+
+        label.addEventListener('contextmenu', ev => {
+            ev.preventDefault()
+            contextTarget = node.Name
+            ctxMenu.style.top  = ev.clientY + 'px'
+            ctxMenu.style.left = ev.clientX + 'px'
+            ctxMenu.style.display = 'block'
         })
     }
     return li
@@ -304,11 +319,16 @@ console.log("wow2")
 window.addEventListener('layerRenamed', (e: Event) => {
     const { oldName, newName } = (e as CustomEvent).detail;
     console.log(`Layer renamed: ${oldName} → ${newName}`);
+
+    currentSelection = newName;
+
     buildLayerTree();
 
     // if we’re in highlight mode, refresh highlights now that names changed
     if (highlightMode) {
         updateHighlights();
+    } else {
+        getScene().clearLayerHighlights();
     }
 });
 
