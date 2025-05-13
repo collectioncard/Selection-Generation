@@ -34,7 +34,7 @@ export class boxClear implements FeatureGenerator {
     }
   );
 
-  // args [x, y, width, height]
+  /** args [x, y, width, height] */
   generate(mapSection: generatorInput, _args?: any): completedSection {
     let grid: number[][] = mapSection.grid;
     console.log(grid)
