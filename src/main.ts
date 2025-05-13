@@ -178,16 +178,29 @@ document.addEventListener('click', () => {
     ctxMenu.style.display = 'none'
 })
 
-// Handle rename from context menu
 ctxRename.addEventListener('click', () => {
     if (!contextTarget) return
+
     const newName = prompt(`Rename "${contextTarget}" to:`)?.trim()
-    if (newName) {
-        getScene().renameLayer(contextTarget, newName)
-        currentSelection = newName
-        buildLayerTree()
-        if (highlightMode) updateHighlights()
+    if (!newName) {
+        ctxMenu.style.display = 'none'
+        return
     }
+
+    const scene = getScene()
+    scene.renameLayer(contextTarget, newName)
+
+    currentSelection = newName
+
+    scene.selectLayer(newName)
+    scene.zoomToLayer(newName)
+    scene.setActiveLayer(newName)
+    scene.clearSelection()
+
+    buildLayerTree()
+
+    if (highlightMode) updateHighlights()
+
     ctxMenu.style.display = 'none'
 })
 
