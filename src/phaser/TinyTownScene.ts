@@ -83,6 +83,12 @@ export class TinyTownScene extends Phaser.Scene {
     private highlightBorders: Phaser.GameObjects.Graphics[] = []; 
     private highlightLabels: Phaser.GameObjects.Text[] = [];
 
+    // the currently active layer bounds, or null if none
+    private activeLayerBounds: { x: number; y: number; width: number; height: number } | null = null;
+
+    // graphics object we’ll use for the outside mask
+    private overlayMask!: Phaser.GameObjects.Graphics;
+
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
     public readonly CANVAS_HEIGHT = 25; // ^^^
@@ -221,10 +227,30 @@ export class TinyTownScene extends Phaser.Scene {
         // -------------> DO STUFF HERE <----------------
         this.selectionBox = this.add.graphics();
         this.selectionBox.setDepth(100); 
+        this.overlayMask = this.add.graphics().setDepth(140);
         
         // this.input.on('pointerdown', this.startSelection, this);
         this.input.on('pointermove', this.updateSelection, this);
         this.input.on('pointerup', this.endSelection, this);
+
+        // cursor change outside active layer
+        this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+            const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+            const tx = Math.floor(worldPoint.x / (16 * this.SCALE));
+            const ty = Math.floor(worldPoint.y / (16 * this.SCALE));
+
+            if (this.activeLayerBounds) {
+                const b = this.activeLayerBounds;
+                const ok =
+                tx >= b.x &&
+                tx < b.x + b.width &&
+                ty >= b.y &&
+                ty < b.y + b.height;
+                this.input.setDefaultCursor(ok ? 'crosshair' : 'not-allowed');
+            } else {
+                this.input.setDefaultCursor('crosshair');
+            }
+        });
 
         //Feature generator demo -- Erase if you don't need this
         // 1. Create a generatorInput obj with a 2D array the size of the feature you want. (min is 5x5 for most I think?)
@@ -285,13 +311,23 @@ export class TinyTownScene extends Phaser.Scene {
         const x: number = Math.floor(worldPoint.x / (16 * this.SCALE));
         const y: number = Math.floor(worldPoint.y / (16 * this.SCALE));
         
-        // Only start selection if within map bounds
-        if (x >= 0 && x < this.CANVAS_WIDTH && y >= 0 && y < this.CANVAS_HEIGHT) {
-            this.isSelecting = true;
-            this.selectionStart = new Phaser.Math.Vector2(x, y);
-            this.selectionEnd = new Phaser.Math.Vector2(x, y);
-            this.drawSelectionBox();
+        if (x < 0 || x >= this.CANVAS_WIDTH || y < 0 || y >= this.CANVAS_HEIGHT) {
+            return;
         }
+
+        // If we're zoomed into a specific layer, only allow starting inside it
+        if (this.activeLayerBounds) {
+            const b = this.activeLayerBounds;
+            if (x < b.x || x >= b.x + b.width || y < b.y || y >= b.y + b.height) {
+                return;
+            }
+        }
+
+        // Begin the selection
+        this.isSelecting = true;
+        this.selectionStart = new Phaser.Math.Vector2(x, y);
+        this.selectionEnd   = new Phaser.Math.Vector2(x, y);
+        this.drawSelectionBox();
     }
     setSelectionCoordinates(x: number, y: number, w: number, h: number): void {
         const endX = x + w - 1;
@@ -325,8 +361,14 @@ export class TinyTownScene extends Phaser.Scene {
         const y: number = Math.floor(worldPoint.y / (16 * this.SCALE));
         
         // Clamp to map bounds
-        const clampedX: number = Phaser.Math.Clamp(x, 0, this.CANVAS_WIDTH - 1);
-        const clampedY: number = Phaser.Math.Clamp(y, 0, this.CANVAS_HEIGHT - 1);
+        let clampedX: number = Phaser.Math.Clamp(x, 0, this.CANVAS_WIDTH - 1);
+        let clampedY: number = Phaser.Math.Clamp(y, 0, this.CANVAS_HEIGHT - 1);
+
+        if (this.activeLayerBounds) {
+            const b = this.activeLayerBounds;
+            clampedX = Phaser.Math.Clamp(x, b.x, b.x + b.width - 1);
+            clampedY = Phaser.Math.Clamp(y, b.y, b.y + b.height - 1);
+        }
         
         this.selectionEnd.set(clampedX, clampedY);
         this.drawSelectionBox();
@@ -580,6 +622,18 @@ export class TinyTownScene extends Phaser.Scene {
         });
     }
 
+    public drawSingleHighlight(layerName: string, color = 0xff8800, alpha = 0.8) {
+        const tw = 16 * this.SCALE
+        const th = 16 * this.SCALE
+        const info = this.namedLayers.get(layerName)
+        if (!info) return
+        const { x, y, width, height } = info.bounds
+        const g = this.add.graphics().setDepth(151)
+        g.lineStyle(4, color, alpha)
+        g.strokeRect(x * tw, y * th, width * tw, height * th)
+        this.highlightBorders.push(g)
+    }
+
     public nameSelection(name: string) {
         const sx = Math.min(this.selectionStart.x, this.selectionEnd.x);
         const sy = Math.min(this.selectionStart.y, this.selectionEnd.y);
@@ -793,6 +847,38 @@ export class TinyTownScene extends Phaser.Scene {
         window.dispatchEvent(
             new CustomEvent('layerDeleted', { detail: name })
         );
+    }
+
+    public setActiveLayer(name: string | null) {
+        if (name) {
+            const info = this.namedLayers.get(name);
+            this.activeLayerBounds = info ? { ...info.bounds } : null;
+        } else {
+            this.activeLayerBounds = null;
+        }
+        this.drawOverlayMask();
+    }
+
+    // Draw a dark translucent mask everywhere outside activeLayerBounds
+    private drawOverlayMask() {
+        this.overlayMask.clear();
+        if (!this.activeLayerBounds) return;
+
+        const tw = 16 * this.SCALE;
+        const th = 16 * this.SCALE;
+        const { x, y, width, height } = this.activeLayerBounds;
+        const fullW = this.CANVAS_WIDTH * tw;
+        const fullH = this.CANVAS_HEIGHT * th;
+
+        this.overlayMask.fillStyle(0x000000, 0.5);
+        // top
+        this.overlayMask.fillRect(0, 0, fullW, y * th);
+        // bottom
+        this.overlayMask.fillRect(0, (y+height)*th, fullW, fullH - (y+height)*th);
+        // left
+        this.overlayMask.fillRect(0, y * th, x * tw, height * th);
+        // right
+        this.overlayMask.fillRect((x+width)*tw, y * th, fullW - (x+width)*tw, height * th);
     }
 
     putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false){

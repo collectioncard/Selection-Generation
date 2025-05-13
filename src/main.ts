@@ -143,15 +143,23 @@ function updateHighlights() {
         const kids = node?.Children || [];
 
         if (kids.length > 0) {
-        namesToHighlight = kids.map((c: any) => c.Name);
+            namesToHighlight = kids.map((c: any) => c.Name);
         } else {
-        namesToHighlight = [ currentSelection ];
+            namesToHighlight = [];
         }
     } else {
         namesToHighlight = scene.layerTree.Root.Children.map((c: any) => c.Name);
     }
 
-    scene.drawLayerHighlights(namesToHighlight);
+    scene.clearLayerHighlights();
+
+    if (namesToHighlight.length > 0) {
+        scene.drawLayerHighlights(namesToHighlight);
+    }
+
+    if (currentSelection) {
+        scene.drawSingleHighlight(currentSelection, 0xff8800, 0.8);
+    }
 }
 
 document.getElementById('reset-view')?.addEventListener('click', () => {
@@ -160,6 +168,7 @@ document.getElementById('reset-view')?.addEventListener('click', () => {
     s.clearSelection(); 
     currentSelection = null;
     buildLayerTree();
+    s.setActiveLayer(null);
     if (highlightMode) {
         updateHighlights();
     } else {
@@ -268,6 +277,7 @@ function makeNodeElement(node: any): HTMLLIElement {
             const scene = getScene()
             scene.selectLayer(node.Name)
             scene.zoomToLayer(node.Name)
+            getScene().setActiveLayer(node.Name);
             scene.clearSelection()
             currentSelection = node.Name
             if (highlightMode) updateHighlights()
@@ -296,6 +306,7 @@ function makeNodeElement(node: any): HTMLLIElement {
             const scene = getScene()
             scene.selectLayer(node.Name)
             scene.zoomToLayer(node.Name)
+            getScene().setActiveLayer(node.Name);
             scene.clearSelection()
             currentSelection = node.Name
             if (highlightMode) updateHighlights()
