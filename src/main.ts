@@ -196,29 +196,78 @@ ctxDelete.addEventListener('click', () => {
     if (!contextTarget) return
     modalLayerName.textContent = contextTarget;
     deleteModal.classList.remove('hidden');
+    ctxMenu.style.display = 'none'
 })
 
+function findParent(childName: string, node: any): any | null {
+  for (const c of node.Children) {
+    if (c.Name === childName) return node
+    const deeper = findParent(childName, c)
+    if (deeper) return deeper
+  }
+  return null
+}
+
+function isRoot(node: any, scene: TinyTownScene) {
+  return node === (scene as any).layerTree.Root;
+}
+
 btnDeleteOnly.addEventListener('click', () => {
-    getScene().deleteLayerOnly(contextTarget!);
-    cleanupAfterDelete();
+    const scene = getScene() as any
+    const root = scene.layerTree.Root
+    const delName = contextTarget!
+    const parentNode = findParent(delName, root)
+
+    scene.deleteLayerOnly(delName)
+
+    // restore selection to parent (or home)
+    if (parentNode && !isRoot(parentNode, scene)) {
+        const parentName = parentNode.Name
+        currentSelection = parentName
+        scene.zoomToLayer(parentName)
+        scene.setActiveLayer(parentName)
+    } else {
+        currentSelection = null
+        scene.resetView()
+        scene.setActiveLayer(null)
+    }
+
+    buildLayerTree()
+    if (highlightMode) updateHighlights()
+    else scene.clearLayerHighlights()
+
+    deleteModal.classList.add('hidden')
 });
 
 btnDeleteWith.addEventListener('click', () => {
-    getScene().deleteLayer(contextTarget!);
-    cleanupAfterDelete();
+    const scene = getScene() as any
+    const root = scene.layerTree.Root
+    const delName = contextTarget!
+    const parentNode = findParent(delName, root)
+
+    scene.deleteLayer(delName)
+
+    if (parentNode && !isRoot(parentNode, scene)) {
+        const parentName = parentNode.Name
+        currentSelection = parentName
+        scene.zoomToLayer(parentName)
+        scene.setActiveLayer(parentName)
+    } else {
+        currentSelection = null
+        scene.resetView()
+        scene.setActiveLayer(null)
+    }
+
+    buildLayerTree()
+    if (highlightMode) updateHighlights()
+    else scene.clearLayerHighlights()
+
+    deleteModal.classList.add('hidden')
 });
 
 btnDeleteCancel.addEventListener('click', () => {
     deleteModal.classList.add('hidden');
 });
-
-function cleanupAfterDelete() {
-    deleteModal.classList.add('hidden');
-    currentSelection = null;
-    getScene().clearSelection();
-    buildLayerTree();
-    if (highlightMode) updateHighlights();
-}
 
 const treeContainer = document.getElementById('layer-tree') as HTMLDivElement
 treeContainer.classList.add('hidden');
