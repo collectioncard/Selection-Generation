@@ -220,6 +220,11 @@ button:focus-visible {
   margin-right: 0.3em;
 }
 
+#layer-tree .selected-label {
+  background-color: rgba(120, 120, 120, 0.2);
+  border-radius: 4px;
+}
+
 .tile-button {
   margin: 0.2rem;
   padding: 0.5rem 1rem;

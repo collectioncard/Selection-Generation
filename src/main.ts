@@ -162,20 +162,6 @@ function updateHighlights() {
     }
 }
 
-document.getElementById('reset-view')?.addEventListener('click', () => {
-    const s = getScene();
-    s.resetView();
-    s.clearSelection(); 
-    currentSelection = null;
-    buildLayerTree();
-    s.setActiveLayer(null);
-    if (highlightMode) {
-        updateHighlights();
-    } else {
-        s.clearLayerHighlights();
-    }
-});
-
 const deleteModal       = document.getElementById('delete-modal')      as HTMLDivElement;
 const modalLayerName    = document.getElementById('modal-layer-name') as HTMLSpanElement;
 const btnDeleteOnly     = document.getElementById('btn-delete-only')     as HTMLButtonElement;
@@ -253,85 +239,106 @@ function findNode(name: string, node: any): any | null {
     return null
 }
 
-// Create a <li> for a folder or file node
 function makeNodeElement(node: any): HTMLLIElement {
     const li = document.createElement('li')
-    if (node.Children.length > 0) {
-        // Folder
-        li.classList.add('folder')
-        const label = document.createElement('div')
-        label.classList.add('folder-label')
-        label.textContent = node.Name    
-        li.appendChild(label)
+    let label: HTMLDivElement
 
+    // create label and apply base classes
+    if (node.Children.length > 0) {
+        li.classList.add('folder')
+        label = document.createElement('div')
+        label.classList.add('folder-label')
+    } else {
+        li.classList.add('file')
+        label = document.createElement('div')
+        label.classList.add('file-label')
+    }
+    label.textContent = node.Name
+
+    // highlight if this is the current selection
+    if (node.Name === currentSelection) {
+        label.classList.add('selected-label')
+    }
+
+    li.appendChild(label)
+
+    // if a folder, recursively build its subtree
+    if (node.Children.length > 0) {
         const childUl = document.createElement('ul')
         childUl.classList.add('nested')
         node.Children.forEach((child: any) => {
             childUl.appendChild(makeNodeElement(child))
         })
         li.appendChild(childUl)
-
-        label.addEventListener('click', () => {
-            //Zoom and show all its child layers
-            li.classList.toggle('open')
-            const scene = getScene()
-            scene.selectLayer(node.Name)
-            scene.zoomToLayer(node.Name)
-            getScene().setActiveLayer(node.Name);
-            scene.clearSelection()
-            currentSelection = node.Name
-            if (highlightMode) updateHighlights()
-            window.dispatchEvent(
-                new CustomEvent('layerSelected', { detail: node.Name })
-            )
-        })
-
-        label.addEventListener('contextmenu', ev => {
-            ev.preventDefault()
-            contextTarget = node.Name
-            ctxMenu.style.top  = ev.clientY + 'px'
-            ctxMenu.style.left = ev.clientX + 'px'
-            ctxMenu.style.display = 'block'
-        })
-    } else {
-        // File
-        li.classList.add('file')
-        const label = document.createElement('div')
-        label.classList.add('file-label')
-        label.textContent = node.Name
-        li.appendChild(label)
-
-        label.addEventListener('click', () => {
-            //Zoom and show all its child layers
-            const scene = getScene()
-            scene.selectLayer(node.Name)
-            scene.zoomToLayer(node.Name)
-            getScene().setActiveLayer(node.Name);
-            scene.clearSelection()
-            currentSelection = node.Name
-            if (highlightMode) updateHighlights()
-            window.dispatchEvent(
-                new CustomEvent('layerSelected', { detail: node.Name })
-            )
-        })
-
-        label.addEventListener('contextmenu', ev => {
-            ev.preventDefault()
-            contextTarget = node.Name
-            ctxMenu.style.top  = ev.clientY + 'px'
-            ctxMenu.style.left = ev.clientX + 'px'
-            ctxMenu.style.display = 'block'
-        })
     }
+
+    // LEFT-CLICK: toggle open & select/zoom
+    label.addEventListener('click', ev => {
+        ev.stopPropagation()
+        if (node.Children.length > 0) {
+            li.classList.toggle('open')
+        }
+        const scene = getScene()
+        scene.selectLayer(node.Name)
+        scene.zoomToLayer(node.Name)
+        scene.setActiveLayer(node.Name)
+        scene.clearSelection()
+
+        currentSelection = node.Name
+
+        if (highlightMode) updateHighlights()
+
+        document
+          .querySelectorAll('#layer-tree .selected-label')
+          .forEach(el => el.classList.remove('selected-label'))
+        label.classList.add('selected-label')
+
+        window.dispatchEvent(
+          new CustomEvent('layerSelected', { detail: node.Name })
+        )
+    })
+
+    label.addEventListener('contextmenu', ev => {
+        ev.preventDefault()
+        ev.stopPropagation()
+        contextTarget = node.Name
+        ctxMenu.style.top  = ev.clientY + 'px'
+        ctxMenu.style.left = ev.clientX + 'px'
+        ctxMenu.style.display = 'block'
+    })
+
     return li
 }
 
 // Build the entire tree UI
 function buildLayerTree() {
-    const s    = getScene() as any
+    const s = getScene() as any
     const root = s.layerTree.Root
     treeContainer.innerHTML = ''
     const ul = document.createElement('ul')
+
+    //Home button
+    const homeLi = document.createElement('li');
+    const homeLabel = document.createElement('div');
+    homeLi.classList.add('file');
+    homeLabel.classList.add('file-label');
+    homeLabel.textContent = 'Home';
+    // highlight “Home” when no layer is selected
+    if (currentSelection === null) {
+        homeLabel.classList.add('selected-label');
+    }
+    homeLabel.addEventListener('click', () => {
+        s.resetView();
+        s.clearSelection();
+        s.setActiveLayer(null);
+        currentSelection = null;
+        buildLayerTree();
+        if (highlightMode) updateHighlights();
+        else s.clearLayerHighlights();
+    });
+    homeLi.appendChild(homeLabel);
+    ul.appendChild(homeLi);
+
     root.Children.forEach((child: any) => {
         ul.appendChild(makeNodeElement(child))
     })
