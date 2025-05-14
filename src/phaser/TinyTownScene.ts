@@ -554,6 +554,8 @@ export class TinyTownScene extends Phaser.Scene {
 
         this.layerTree.add(name, [[sx, sy],[ex, ey]], w, h);
         this.layerTree.printTree();
+
+        window.dispatchEvent(new CustomEvent('layerCreated', { detail: name }));
     }
 
     public selectLayer(name: string) {

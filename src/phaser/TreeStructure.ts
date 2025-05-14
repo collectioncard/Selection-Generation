@@ -98,14 +98,15 @@ export class Tree {
     //      layerName: name of the layer you are searching for
     //      currentNode: starts at the root node of the tree
     // returns the node with Name: layerName
-    private findNode(layerName: string = "", currentNode: Node = this.Root) {
-        if (layerName == currentNode.Name) {
+    private findNode(layerName: string = "", currentNode: Node = this.Root): Node | undefined {
+        if (layerName === currentNode.Name) {
             return currentNode;
-        } else {
-            for (let childNode of currentNode.Children) {
-                this.find(layerName, childNode);
-            }
         }
+        for (let childNode of currentNode.Children) {
+            const result = this.findNode(layerName, childNode);
+            if (result) return result;
+        }
+        return undefined;
     }
 
     printTree(currentNode: Node = this.Root) {
@@ -117,6 +118,34 @@ export class Tree {
         for (let childNode of currentNode.Children) {
             this.printTree(childNode);
         }
+    }
+
+    move(layerName: string, newParentName: string) {
+        console.log("called move on " + newParentName + " to be the parent of " + layerName);
+        let currentNode = this.findNode(layerName);
+        let newParent = this.findNode(newParentName);
+        let oldParent = this.findParent(layerName);
+        console.log(oldParent);
+        console.log(currentNode);
+        console.log(newParent);
+        if (newParent && currentNode && oldParent) {
+            newParent.Children.push(currentNode);
+            let index = oldParent.Children.indexOf(currentNode);
+            oldParent.Children.splice(index, 1);
+        }
+
+        this.printTree();
+    }
+
+    findParent(layerName: string = "", currentNode: Node = this.Root): Node | undefined {
+        for (let childNode of currentNode.Children) {
+            if (childNode.Name === layerName) {
+                return currentNode;
+            }
+            const result = this.findParent(layerName, childNode);
+            if (result) return result;
+        }
+        return undefined;
     }
 }
 

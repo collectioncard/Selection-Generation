@@ -50,6 +50,8 @@ const generators = {
     select_layer: new SelectLayerTool(getScene),
 }
 
+let draggedElement: HTMLElement | null = null;
+
 Object.values(generators).forEach(generator => {
     if (generator.toolCall) {
         registerTool(generator.toolCall);
@@ -173,57 +175,105 @@ function findNode(name: string, node: any): any | null {
 
 // Create a <li> for a folder or file node
 function makeNodeElement(node: any): HTMLLIElement {
-    const li = document.createElement('li')
+    const li = document.createElement('li');
+    li.dataset.name = node.Name;
+    li.setAttribute('draggable', 'true');
+
+    li.addEventListener('dragstart', startDrag);
+    li.addEventListener('dragover', allowDrop);
+    li.addEventListener('drop', drop);
+
     if (node.Children.length > 0) {
         // Folder
-        li.classList.add('folder')
-        const label = document.createElement('div')
-        label.classList.add('folder-label')
-        label.textContent = node.Name    
-        li.appendChild(label)
+        li.classList.add('folder');
+        const label = document.createElement('div');
+        label.classList.add('folder-label');
+        label.textContent = node.Name;
+        li.appendChild(label);
 
-        const childUl = document.createElement('ul')
-        childUl.classList.add('nested')
+        const childUl = document.createElement('ul');
+        childUl.classList.add('nested');
         node.Children.forEach((child: any) => {
-        childUl.appendChild(makeNodeElement(child))
-        })
-        li.appendChild(childUl)
+            childUl.appendChild(makeNodeElement(child));
+        });
+        li.appendChild(childUl);
 
         label.addEventListener('click', () => {
-            //Zoom and show all its child layers
-            li.classList.toggle('open')
-            const scene = getScene()
-            scene.selectLayer(node.Name)
-            scene.zoomToLayer(node.Name)
-            scene.clearSelection()
-            currentSelection = node.Name
-            if (highlightMode) updateHighlights()
-            window.dispatchEvent(
-                new CustomEvent('layerSelected', { detail: node.Name })
-            )
-        })
+            li.classList.toggle('open');
+            const scene = getScene();
+            scene.selectLayer(node.Name);
+            scene.zoomToLayer(node.Name);
+            scene.clearSelection();
+            currentSelection = node.Name;
+            if (highlightMode) updateHighlights();
+            window.dispatchEvent(new CustomEvent('layerSelected', { detail: node.Name }));
+        });
     } else {
         // File
-        li.classList.add('file')
-        const label = document.createElement('div')
-        label.classList.add('file-label')
-        label.textContent = node.Name
-        li.appendChild(label)
+        li.classList.add('file');
+        const label = document.createElement('div');
+        label.classList.add('file-label');
+        label.textContent = node.Name;
+        li.appendChild(label);
 
         label.addEventListener('click', () => {
-            //Zoom and show all its child layers
-            const scene = getScene()
-            scene.selectLayer(node.Name)
-            scene.zoomToLayer(node.Name)
-            scene.clearSelection()
-            currentSelection = node.Name
-            if (highlightMode) updateHighlights()
-            window.dispatchEvent(
-                new CustomEvent('layerSelected', { detail: node.Name })
-            )
-        })
+            const scene = getScene();
+            scene.selectLayer(node.Name);
+            scene.zoomToLayer(node.Name);
+            scene.clearSelection();
+            currentSelection = node.Name;
+            if (highlightMode) updateHighlights();
+            window.dispatchEvent(new CustomEvent('layerSelected', { detail: node.Name }));
+        });
     }
-    return li
+
+    return li;
+}
+
+function allowDrop(event: DragEvent) {
+    event.preventDefault();
+}
+
+function startDrag(event: DragEvent) {
+    const target = event.target as HTMLElement;
+    console.log("[dragstart]", target.dataset.name);
+    draggedElement = target;
+    event.dataTransfer?.setData('text/plain', target.dataset.name || '');
+}
+
+function drop(event: DragEvent) {
+    event.preventDefault();
+    console.log("[drop] onto", (event.currentTarget as HTMLElement)?.dataset.name);
+    const draggedName = draggedElement?.dataset.name;
+    const dropTarget = event.currentTarget as HTMLElement;
+    const targetName = dropTarget.dataset.name;
+
+    if (!draggedName || !targetName || draggedName === targetName) return;
+
+    const scene = getScene() as any;
+    const sourceNode = findNode(draggedName, scene.layerTree.Root);
+    const targetNode = findNode(targetName, scene.layerTree.Root);
+
+    // Prevent moving into descendant
+    if (isDescendant(sourceNode, targetNode)) {
+        console.warn("Can't move into own descendant");
+        return;
+    }
+
+    console.log(draggedName, targetName);
+    scene.layerTree.move(draggedName, targetName);
+    buildLayerTree();
+    scene.layerTree.printTree();
+}
+
+function isDescendant(parent: any, possibleChild: any): boolean {
+    if (!parent || !parent.Children) return false;
+    for (const child of parent.Children) {
+        if (child === possibleChild || isDescendant(child, possibleChild)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Build the entire tree UI
@@ -281,5 +331,6 @@ if (modeButton) {
         modeButton!.textContent = `Mode: ${scene.isPlacingMode ? 'Place' : 'Select'}`;
     });
 }
+
 // buildLayerTree();
 buildLayerTree();
