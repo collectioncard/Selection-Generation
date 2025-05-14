@@ -259,11 +259,9 @@ function drop(event: DragEvent) {
         console.warn("Can't move into own descendant");
         return;
     }
-
-    console.log(draggedName, targetName);
+    
     scene.layerTree.move(draggedName, targetName);
     buildLayerTree();
-    scene.layerTree.printTree();
 }
 
 function isDescendant(parent: any, possibleChild: any): boolean {

@@ -125,9 +125,6 @@ export class Tree {
         let currentNode = this.findNode(layerName);
         let newParent = this.findNode(newParentName);
         let oldParent = this.findParent(layerName);
-        console.log(oldParent);
-        console.log(currentNode);
-        console.log(newParent);
         if (newParent && currentNode && oldParent) {
             newParent.Children.push(currentNode);
             let index = oldParent.Children.indexOf(currentNode);
