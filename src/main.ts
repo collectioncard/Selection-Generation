@@ -54,6 +54,8 @@ const generators = {
     delete_layer: new DeleteLayerTool(getScene),
 }
 
+let draggedElement: HTMLElement | null = null;
+
 Object.values(generators).forEach(generator => {
     if (generator.toolCall) {
         registerTool(generator.toolCall);
@@ -304,8 +306,15 @@ function findNode(name: string, node: any): any | null {
 function makeNodeElement(node: any): HTMLLIElement {
     const li = document.createElement('li')
     let label: HTMLDivElement
+    
+    li.dataset.name = node.Name;
+    li.setAttribute('draggable', 'true');
+    li.addEventListener('dragstart', startDrag);
+    li.addEventListener('dragover', allowDrop);
+    li.addEventListener('drop', drop);
 
     // create label and apply base classes
+    
     if (node.Children.length > 0) {
         li.classList.add('folder')
         label = document.createElement('div')
@@ -370,6 +379,52 @@ function makeNodeElement(node: any): HTMLLIElement {
     })
 
     return li
+}
+
+function allowDrop(event: DragEvent) {
+    event.preventDefault();
+}
+
+function startDrag(event: DragEvent) {
+    const target = event.target as HTMLElement;
+    console.log("[dragstart]", target.dataset.name);
+    draggedElement = target;
+    event.dataTransfer?.setData('text/plain', target.dataset.name || '');
+}
+
+function drop(event: DragEvent) {
+    event.preventDefault();
+    console.log("[drop] onto", (event.currentTarget as HTMLElement)?.dataset.name);
+    const draggedName = draggedElement?.dataset.name;
+    const dropTarget = event.currentTarget as HTMLElement;
+    const targetName = dropTarget.dataset.name;
+
+    if (!draggedName || !targetName || draggedName === targetName) return;
+
+    const scene = getScene() as any;
+    const sourceNode = findNode(draggedName, scene.layerTree.Root);
+    const targetNode = findNode(targetName, scene.layerTree.Root);
+
+    // Prevent moving into descendant
+    if (isDescendant(sourceNode, targetNode)) {
+        console.warn("Can't move into own descendant");
+        return;
+    }
+
+    console.log(draggedName, targetName);
+    scene.layerTree.move(draggedName, targetName);
+    buildLayerTree();
+    scene.layerTree.printTree();
+}
+
+function isDescendant(parent: any, possibleChild: any): boolean {
+    if (!parent || !parent.Children) return false;
+    for (const child of parent.Children) {
+        if (child === possibleChild || isDescendant(child, possibleChild)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Build the entire tree UI
@@ -475,5 +530,6 @@ if (modeButton) {
         modeButton!.textContent = `Mode: ${scene.isPlacingMode ? 'Place' : 'Select'}`;
     });
 }
+
 // buildLayerTree();
 buildLayerTree();
