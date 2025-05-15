@@ -375,13 +375,13 @@ export class TinyTownScene extends Phaser.Scene {
         } else {
             if (this.paragraphDescription!=''){
                 selectionMessage =
-                `User has selected a rectangular region that is this size: ${selectionWidth}x${selectionHeight}. THESE ARE NOT GLOBAL COORDINATES.` +
+                `User has selected a rectangular region that is this size: ${selectionWidth}x${selectionHeight}. Here are the global coordinates for the selection box: [${startX}, ${startY}] to [${endX}, ${endY}].` +
                 `This is the description of the selection, this is only for context purposes and to help you understand what is selected: ${this.paragraphDescription}. ` +
                 `Be sure to re-explain what is in the selection box. If there are objects in the selection, specify the characteristics of the object. ` +
                 `If no objects are inside the selection, then do not mention anything else.`;
             }else{
                 selectionMessage =
-                `User has selected a rectangular region that is this size: ${selectionWidth}x${selectionHeight}. THESE ARE NOT GLOBAL COORDINATES ` +
+                `User has selected a rectangular region that is this size: ${selectionWidth}x${selectionHeight}. Here are the global coordinates for the selection box: [${startX}, ${startY}] to [${endX}, ${endY}].` +
                 `There are no notable points of interest in this selection` +
                 `Be sure to re-explain what is in the selection box. If there are objects in the selection, specify the characteristics of the object. ` +
                 `If no objects are inside the selection, then do not mention anything else.`;
