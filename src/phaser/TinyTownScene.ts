@@ -753,7 +753,7 @@ export class TinyTownScene extends Phaser.Scene {
         );
     }
 
-    public resetView(){
+    public resetView() {
         const cam = this.cameras.main;
         cam.setZoom(1);
         // center on world middle (mapWidth*tileSize/2, mapHeight*tileSize/2)
@@ -761,6 +761,7 @@ export class TinyTownScene extends Phaser.Scene {
         const worldH = this.CANVAS_HEIGHT * 16 * this.SCALE;
         cam.centerOn(worldW / 2, worldH / 2);
         console.log('View reset to default');
+    }
 
     getTilePriority(tileIndex: number): number {
         if (tileIndex === -1 || tileIndex === -2) {
