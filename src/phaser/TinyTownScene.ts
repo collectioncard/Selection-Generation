@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
+import { sendSystemMessage } from '../modelChat/chatbox';
 
 import {Preload} from './Preload';
 import {HouseGenerator} from "./featureGenerators/houseGenerator";
 import {completedSection, generatorInput} from "./featureGenerators/GeneratorInterface.ts";
+import {Tree} from "./TreeStructure.ts"
+import { WorldFactsDatabaseMaker } from './WorldFactsDatabaseMaker.ts';
 
 interface TinyTownSceneData {
     dict: { [key: number]: string };
@@ -77,13 +80,41 @@ const buildNeighbourRules = () => {
 const MULTI_TILE_NEIGHBOUR_RULES = buildNeighbourRules();
 
 export class TinyTownScene extends Phaser.Scene {
+    private highlightBorders: Phaser.GameObjects.Graphics[] = []; 
+    private highlightLabels: Phaser.GameObjects.Text[] = [];
+
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
     public readonly CANVAS_HEIGHT = 25; // ^^^
-    
+    public readonly TILE_SIZE = 16; //Size in pixels
+
     ////DEBUG / FEATURE FLAGS////
     private readonly allowOverwriting: boolean = true; // Allows LLM to overwrite placed tiles
     
+    // Phaser map & tileset references
+    private map!: Phaser.Tilemaps.Tilemap;
+    private tileset!: Phaser.Tilemaps.Tileset;
+
+    // Base layers
+    private grassLayer!: Phaser.Tilemaps.TilemapLayer;
+    private featureLayer!: Phaser.Tilemaps.TilemapLayer;
+
+    // Tree Structure
+    private layerTree = new Tree("Root", [[0, 0], [this.CANVAS_WIDTH, this.CANVAS_HEIGHT]], this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
+    
+    // Named layers storage: name → bounds + tile coordinates
+    private namedLayers = new Map<
+        string,
+        {
+            layer: Phaser.Tilemaps.TilemapLayer,
+            bounds: { x: number, y: number, width: number, height: number }
+        }
+    >();
+    //highlight box
+    private highlightBox!: Phaser.GameObjects.Graphics;
+    public selectedTileId: number | null = null;
+
+    public isPlacingMode: boolean = true; // true = placing mode, false = selection mode
 
     // selection box properties
     private selectionBox!: Phaser.GameObjects.Graphics;
@@ -102,9 +133,10 @@ export class TinyTownScene extends Phaser.Scene {
         tileGrid: [],
         featureGrid: [],
         combinedGrid: []
-      };    
-    private grassLayer : Phaser.Tilemaps.TilemapLayer | null = null;
-    private featureLayer : Phaser.Tilemaps.TilemapLayer | null = null;
+      };
+
+    private wf: WorldFactsDatabaseMaker | null = null;
+    private paragraphDescription: string = '';
 
     // set of tile indexes used for tile understanding
     private selectedTileSet = new Set<number>();
@@ -130,11 +162,34 @@ export class TinyTownScene extends Phaser.Scene {
     preload() {
         this.load.image(
             'tiny_town_tiles',
-            'phaserAssets/Tilemap_Packed.png',
+            'phaserAssets/Tilemap_Extruded.png',
         );
+        
     }
 
     create() {
+        const stripeSize = 64;
+        const stripeThickness = 16;
+
+        const g = this.make.graphics();
+        g.fillStyle(0x000000, 1);
+        g.fillRect(0, 0, stripeSize, stripeSize);
+
+        g.lineStyle(stripeThickness, 0xb92d2e, 1);
+        g.strokeLineShape(new Phaser.Geom.Line(0, stripeSize, stripeSize, 0));
+        g.generateTexture('stripePattern', stripeSize, stripeSize);
+        g.destroy();
+        
+        const stripes = this.add
+        .tileSprite(0, 0, this.cameras.main.width, this.cameras.main.height, 'stripePattern')
+        .setOrigin(0)
+        .setScrollFactor(0)
+        .setDepth(-100);
+
+        this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
+            stripes.setSize(gameSize.width, gameSize.height);
+        });
+
         const map = this.make.tilemap({
             tileWidth: 16,
             tileHeight: 16,
@@ -142,7 +197,13 @@ export class TinyTownScene extends Phaser.Scene {
             height: 20,
         });
 
-        const tileSheet = map.addTilesetImage('tiny_town_tiles')!;
+        // Load the extruded map to prevent bleeding when zooming in.
+        // This is generated with npm run process-assets
+        // this must be done for every new tileset
+        const tileSheet = map.addTilesetImage("tiny_town_tiles", "tiny_town_tiles", 16, 16, 1, 2)!;
+
+        this.map = map;
+        this.tileset = tileSheet;
 
         this.grassLayer = map.createBlankLayer('base-layer', tileSheet, 0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT)!;
         this.grassLayer.setScale(this.SCALE);
@@ -161,7 +222,7 @@ export class TinyTownScene extends Phaser.Scene {
         this.selectionBox = this.add.graphics();
         this.selectionBox.setDepth(100); 
         
-        this.input.on('pointerdown', this.startSelection, this);
+        // this.input.on('pointerdown', this.startSelection, this);
         this.input.on('pointermove', this.updateSelection, this);
         this.input.on('pointerup', this.endSelection, this);
 
@@ -181,13 +242,48 @@ export class TinyTownScene extends Phaser.Scene {
         // 3. Put that somewhere in the feature layer. 1,1 for this example.
         this.featureLayer.putTilesAt(generatedData.grid, 1, 1);
       
+        //highlight box
+        this.highlightBox = this.add.graphics();
+        this.highlightBox.setDepth(101);  // Ensure it's on top of everything
+
+        // Setup pointer movement
+        this.input.on('pointermove', this.highlightTile, this);
+
+        //place the selected tile upon mouse click
+        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            if (this.isPlacingMode) {
+                const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+                const x: number = Math.floor(worldPoint.x / (16 * this.SCALE));
+                const y: number = Math.floor(worldPoint.y / (16 * this.SCALE));
+              
+                if (
+                    this.selectedTileId !== null &&
+                    x >= 0 && x < this.CANVAS_WIDTH &&
+                    y >= 0 && y < this.CANVAS_HEIGHT
+                ) {
+                    this.featureLayer?.putTileAt(this.selectedTileId, x, y);
+                }
+            } else {
+                this.startSelection(pointer);
+            }
+        });
         
+        // create/refrence button to change modes (move to main later)
+        const modeButton = document.getElementById('mode-selection');
+        if (modeButton) {
+            modeButton.textContent = `Mode: ${this.isPlacingMode ? 'Place' : 'Select'}`;
+            modeButton.addEventListener('click', () => {
+                this.isPlacingMode = !this.isPlacingMode;
+                modeButton!.textContent = `Mode: ${this.isPlacingMode ? 'Place' : 'Select'}`;
+            });
+        }
     }
 
     startSelection(pointer: Phaser.Input.Pointer): void {
         // Convert screen coordinates to tile coordinates
-        const x: number = Math.floor(pointer.x / (16 * this.SCALE));
-        const y: number = Math.floor(pointer.y / (16 * this.SCALE));
+        const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+        const x: number = Math.floor(worldPoint.x / (16 * this.SCALE));
+        const y: number = Math.floor(worldPoint.y / (16 * this.SCALE));
         
         // Only start selection if within map bounds
         if (x >= 0 && x < this.CANVAS_WIDTH && y >= 0 && y < this.CANVAS_HEIGHT) {
@@ -224,8 +320,9 @@ export class TinyTownScene extends Phaser.Scene {
         if (!this.isSelecting) return;
         
         // Convert screen coordinates to tile coordinates
-        const x: number = Math.floor(pointer.x / (16 * this.SCALE));
-        const y: number = Math.floor(pointer.y / (16 * this.SCALE));
+        const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+        const x: number = Math.floor(worldPoint.x / (16 * this.SCALE));
+        const y: number = Math.floor(worldPoint.y / (16 * this.SCALE));
         
         // Clamp to map bounds
         const clampedX: number = Phaser.Math.Clamp(x, 0, this.CANVAS_WIDTH - 1);
@@ -241,15 +338,60 @@ export class TinyTownScene extends Phaser.Scene {
         this.isSelecting = false;
         this.collectSelectedTiles();
         
-        // loop through selectedTileSet once it works
         const selectedDescriptions = [];
         for (let tileID of this.selectedTileSet) {
             const description = this.tileDictionary[tileID];
             selectedDescriptions.push({ tileID, description });
         }
-        // selectedDescriptions is all the unique tiles and their descriptions
-        console.log(selectedDescriptions);
+        
+        this.wf = new WorldFactsDatabaseMaker(this.selectedTiles.combinedGrid, this.selectedTiles.dimensions.width, this.selectedTiles.dimensions.height, this.TILE_SIZE);
+		this.wf.getWorldFacts();
+
+		this.paragraphDescription = this.wf.getDescriptionParagraph();
+		console.log(this.paragraphDescription);
+
+        const startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
+        const startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
+        const endX = Math.max(this.selectionStart.x, this.selectionEnd.x);
+        const endY = Math.max(this.selectionStart.y, this.selectionEnd.y);
+
+        // These define the height and width of the selection box
+        const selectionWidth = endX - startX;
+        const selectionHeight = endY - startY;
+
+        // Helper to convert any global (x, y) to selection-local coordinates
+        const toSelectionCoordinates = (x: number, y: number) => {
+            return {
+                x: x - startX,
+                y: endY - y // Flip y-axis relative to bottom-left
+            };
+        };
+
+        let selectionMessage: string;
+
+        if (startX === endX && startY === endY) {
+            const { x: localX, y: localY } = toSelectionCoordinates(startX, startY);
+            selectionMessage = `User has selected a single tile at (${localX}, ${localY}) relative to the bottom-left of the selection box.`;
+        } else {
+            if (this.paragraphDescription!=''){
+                selectionMessage =
+                `User has selected a rectangular region that is this size: ${selectionWidth}x${selectionHeight}. THESE ARE NOT GLOBAL COORDINATES.` +
+                `This is the description of the selection, this is only for context purposes and to help you understand what is selected: ${this.paragraphDescription}. ` +
+                `Be sure to re-explain what is in the selection box. If there are objects in the selection, specify the characteristics of the object. ` +
+                `If no objects are inside the selection, then do not mention anything else.`;
+            }else{
+                selectionMessage =
+                `User has selected a rectangular region that is this size: ${selectionWidth}x${selectionHeight}. THESE ARE NOT GLOBAL COORDINATES ` +
+                `There are no notable points of interest in this selection` +
+                `Be sure to re-explain what is in the selection box. If there are objects in the selection, specify the characteristics of the object. ` +
+                `If no objects are inside the selection, then do not mention anything else.`;
+            }
+            console.log(selectionMessage);
+        }
+    
+        sendSystemMessage(selectionMessage);
     }
+    
     
     drawSelectionBox() {
         this.selectionBox.clear();
@@ -393,6 +535,179 @@ export class TinyTownScene extends Phaser.Scene {
         };
     }
 
+
+    public clearLayerHighlights() {
+        this.highlightBorders.forEach(g => g.destroy());
+        this.highlightLabels.forEach(t => t.destroy());
+        this.highlightBorders = [];
+        this.highlightLabels  = [];
+    }
+
+    public drawLayerHighlights(layerNames: string[]) {
+        this.clearLayerHighlights();
+      
+        const tw = 16 * this.SCALE;
+        const th = 16 * this.SCALE;
+        const color     = 0x0000ff; // Color
+        const alpha     = 0.5;      // opacity
+        const lineWidth = 2;        // line width
+      
+        layerNames.forEach(name => {
+            const info = this.namedLayers.get(name);
+            if (!info) return;
+        
+            const { x, y, width, height } = info.bounds;
+            const wx  = x * tw;
+            const wy  = y * th;
+            const wpx = width  * tw;
+            const hpx = height * th;
+        
+            // draw the box
+            const g = this.add.graphics().setDepth(150);
+            g.lineStyle(lineWidth, color, alpha);
+            g.strokeRect(wx, wy, wpx, hpx);
+            this.highlightBorders.push(g);
+        
+            // draw the label in the top-right corner
+            const label = this.add
+                .text(wx + wpx - 4, wy + 4, name, {
+                font: '12px sans-serif',
+                color: '#0000ff'
+                })
+                .setOrigin(1, 0)
+                .setDepth(151);
+            this.highlightLabels.push(label);
+        });
+    }
+
+    public nameSelection(name: string) {
+        const sx = Math.min(this.selectionStart.x, this.selectionEnd.x);
+        const sy = Math.min(this.selectionStart.y, this.selectionEnd.y);
+        const ex = Math.max(this.selectionStart.x, this.selectionEnd.x);
+        const ey = Math.max(this.selectionStart.y, this.selectionEnd.y);
+        const w  = ex - sx + 1;
+        const h  = ey - sy + 1;
+    
+        const layer = this.map.createBlankLayer(
+            name,            // unique layer name
+            this.tileset,    // your Tileset object
+            sx * 16 * this.SCALE,  // world-space X
+            sy * 16 * this.SCALE,  // world-space Y
+            w,               // layer width in tiles
+            h                // layer height in tiles
+        );
+    
+        if (!layer) {
+            console.warn(`Failed to create layer "${name}".`);
+            return;
+        }
+    
+        // Copy & clear tiles from featureLayer → new layer
+        for (let row = 0; row < h; row++) {
+            for (let col = 0; col < w; col++) {
+                const tx  = sx + col;
+                const ty  = sy + row;
+                const idx = this.featureLayer.getTileAt(tx, ty)?.index ?? -1;
+                if (idx >= 0) {
+                layer.putTileAt(idx, col, row);
+                this.featureLayer.removeTileAt(tx, ty);
+                }
+            }
+        }
+    
+        this.namedLayers.set(name, {
+            layer,
+            bounds: {x: sx, y:sy, width: w, height: h}
+        });
+        console.log(`Layer "${name}" created at tile coords (${sx},${sy}) size ${w}×${h}`);
+
+        this.layerTree.add(name, [[sx, sy],[ex, ey]], w, h);
+        this.layerTree.printTree();
+    }
+
+    public selectLayer(name: string) {
+        const info = this.namedLayers.get(name);
+        if (!info) {
+          console.warn(`No layer called "${name}".`);
+          return;
+        }
+        const startX  = info.bounds.x;
+        const startY  = info.bounds.y;
+        const width   = info.bounds.width;
+        const height  = info.bounds.height;
+        // this will draw & collect
+        this.setSelectionCoordinates(startX, startY, width, height);
+        // then zoom in on it
+        this.zoomToLayer(name);
+        console.log(
+            `Re-selected layer "${name}" at tile (${startX},${startY}) ` +
+            `size ${width}×${height}.`
+        );
+
+        // Used to change highlighted layer in the UI
+        window.dispatchEvent(new CustomEvent('layerSelected', { detail: name }));
+    }
+    
+
+    // //Moves an existing named layer by (dx, dy) tiles.
+
+    // public moveLayer(name: string, dx: number, dy: number) {
+    //     const layer = this.namedLayers.get(name);
+    //     if (!layer) {
+    //         console.warn(`Layer "${name}" not found.`);
+    //         return;
+    //     }
+
+    //     layer.x += dx * 16 * this.SCALE;
+    //     layer.y += dy * 16 * this.SCALE;
+
+    //     console.log(`Layer "${name}" moved by (${dx},${dy}) tiles`);
+    // }
+
+    public zoomToLayer(name: string, paddingFraction = 0.1){
+        const info = this.namedLayers.get(name);
+        if (!info) {
+            console.warn(`Layer "${name}" not found, cannot zoom.`);
+            return;
+        }
+
+        const { x, y, width, height } = info.bounds;
+        const cam = this.cameras.main;
+
+        // tile → world pixels
+        const tw = 16 * this.SCALE;
+        const th = 16 * this.SCALE;
+        const worldX = x * tw;
+        const worldY = y * th;
+        const layerWpx = width * tw;
+        const layerHpx = height * th;
+
+        // how much to zoom so that the layer just fits (before padding)
+        const zoomX = cam.width  / layerWpx;
+        const zoomY = cam.height / layerHpx;
+        let zoom = Math.min(zoomX, zoomY);
+
+        // shrink a bit by paddingFraction (e.g. 0.1 → 10% border)
+        zoom = zoom * (1 - paddingFraction);
+
+        cam.setZoom(zoom);
+
+        // center on the middle of that layer
+        cam.centerOn(
+            worldX + layerWpx  / 2,
+            worldY + layerHpx  / 2
+        );
+    }
+
+    public resetView(){
+        const cam = this.cameras.main;
+        cam.setZoom(1);
+        // center on world middle (mapWidth*tileSize/2, mapHeight*tileSize/2)
+        const worldW = this.CANVAS_WIDTH * 16 * this.SCALE;
+        const worldH = this.CANVAS_HEIGHT * 16 * this.SCALE;
+        cam.centerOn(worldW / 2, worldH / 2);
+        console.log('View reset to default');
+
     getTilePriority(tileIndex: number): number {
         if (tileIndex === -1 || tileIndex === -2) {
             return TILE_PRIORITY.EMPTY; // -1
@@ -416,6 +731,7 @@ export class TinyTownScene extends Phaser.Scene {
              return TILE_PRIORITY.GRASS; // 0
         }
         return TILE_PRIORITY.GRASS; // 0
+
     }
 
     putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false){
@@ -577,6 +893,52 @@ export class TinyTownScene extends Phaser.Scene {
         //const timeTaken = performance.now() - time;
         //console.log(`Pruned ${toRemove.length} tiles in ${timeTaken.toFixed(2)} ms (${tilesScanned} tiles scanned)`);
 
+    }
+
+    highlightTile(pointer: Phaser.Input.Pointer): void {
+        // Convert screen coordinates to tile coordinates
+        const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+        const x: number = Math.floor(worldPoint.x / (16 * this.SCALE));
+        const y: number = Math.floor(worldPoint.y / (16 * this.SCALE));
+
+        // Only highlight if within map bounds
+        if (x >= 0 && x < this.CANVAS_WIDTH && y >= 0 && y < this.CANVAS_HEIGHT) {
+            this.drawHighlightBox(x, y);
+        } else {
+            // Clear highlight if out of bounds
+            this.highlightBox.clear();
+        }
+    }
+
+    drawHighlightBox(x: number, y: number): void {
+        // Clear any previous highlights
+        this.highlightBox.clear();
+
+        // Set the style for the highlight (e.g., semi-transparent yellow)
+        this.highlightBox.fillStyle(0xFFFF00, 0.5);  // Yellow with some transparency
+        this.highlightBox.lineStyle(2, 0xFFFF00, 1);  // Yellow outline
+
+        // Draw a rectangle around the hovered tile
+        this.highlightBox.strokeRect(
+            x * 16 * this.SCALE, 
+            y * 16 * this.SCALE, 
+            16 * this.SCALE, 
+            16 * this.SCALE
+        );
+
+        // Optionally, you can fill the tile with a semi-transparent color to highlight it
+        this.highlightBox.fillRect(
+            x * 16 * this.SCALE, 
+            y * 16 * this.SCALE, 
+            16 * this.SCALE, 
+            16 * this.SCALE
+        );
+    }
+
+    // to be used in main to select tiles via buttons
+    setSelectedTileId(id: number) {
+        this.selectedTileId = id;
+        console.log("Selected tile ID:", id);
     }
 }
 
