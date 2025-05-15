@@ -70,10 +70,17 @@ document.getElementById('all-selection')?.addEventListener('click', () => {
 document.getElementById('clear-selected-tiles')?.addEventListener('click', () => {
     const scene = getScene();
     if (scene) {
-        const startX = Math.min(scene.selectionStart.x, scene.selectionEnd.x);
-        const startY = Math.min(scene.selectionStart.y, scene.selectionEnd.y);
-        const width = Math.abs(scene.selectionEnd.x - scene.selectionStart.x);
-        const height = Math.abs(scene.selectionEnd.y - scene.selectionStart.y);
+        var startX = 0;
+        var startY = 0;
+        var width = scene.CANVAS_WIDTH;
+        var height = scene.CANVAS_HEIGHT;
+        if(scene.selectionStart && scene.selectionEnd)
+        {
+            startX = Math.min(scene.selectionStart.x, scene.selectionEnd.x);
+            startY = Math.min(scene.selectionStart.y, scene.selectionEnd.y);
+            width = Math.abs(scene.selectionEnd.x - scene.selectionStart.x);
+            height = Math.abs(scene.selectionEnd.y - scene.selectionStart.y);
+        }
         
         // Use the clear generator from your generators object
         generators.clear.toolCall.invoke({
