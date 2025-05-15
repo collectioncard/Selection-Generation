@@ -36,7 +36,7 @@ export class boxPlacer implements FeatureGenerator {
     }
   );
 
-  // args correlate to [x, y, width, height, tileID, filled]
+  /** args correlate to [x, y, width, height, tileID, filled] */
   generate(mapSection: generatorInput, _args?: any): completedSection {
     let grid: number[][] = mapSection.grid;
 

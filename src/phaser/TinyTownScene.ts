@@ -11,6 +11,74 @@ interface TinyTownSceneData {
     dict: { [key: number]: string };
 }
 
+const TILE_PRIORITY = {
+    HOUSE: 4,
+    FENCE: 3,
+    DECOR: 2,
+    FOREST: 1,
+    GRASS: 0,
+    EMPTY: -1
+};
+
+const MULTI_TILE_TREES = {
+    single: {
+      green: [4, 16],
+      yellow: [3, 15],
+    },
+    stack1: {
+      green: [6, 8, 30, 32],
+      yellow: [9, 11, 33, 35],
+    },
+    stack2: {
+      green: [7, 19, 31, 18, 20],
+      yellow: [10, 22, 34, 21, 23],
+    },
+};
+
+const buildNeighbourRules = () => {
+    type RuleEntry = { dx: number; dy: number; expected: number };
+    const map = new Map<number, RuleEntry[]>();
+  
+    const addRules = (tiles: number[], positions: { x: number; y: number }[]) => {
+      tiles.forEach((id, i) => {
+        const rules: RuleEntry[] = [];
+        tiles.forEach((otherID, j) => {
+          if (i === j) return;
+          const dx = positions[j].x - positions[i].x;
+          const dy = positions[j].y - positions[i].y;
+          rules.push({ dx, dy, expected: otherID });
+        });
+        map.set(id, rules);
+      });
+    };
+  
+    addRules(MULTI_TILE_TREES.single.green, [{ x: 0, y: 0 }, { x: 0, y: 1 }]);
+    addRules(MULTI_TILE_TREES.single.yellow, [{ x: 0, y: 0 }, { x: 0, y: 1 }]);
+  
+    const squarePos = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 0, y: 1 },
+      { x: 1, y: 1 },
+    ];
+    addRules(MULTI_TILE_TREES.stack1.green, squarePos);
+    addRules(MULTI_TILE_TREES.stack1.yellow, squarePos);
+  
+    const crossPos = [
+      { x: 0, y: 0 },   // top 
+      { x: 0, y: 1 },   // mid 
+      { x: 0, y: 2 },   // bottom 
+      { x: -1, y: 1 },  // left 
+      { x: 1, y: 1 },   // right 
+    ];
+    addRules(MULTI_TILE_TREES.stack2.green, crossPos);
+    addRules(MULTI_TILE_TREES.stack2.yellow, crossPos);
+  
+    return map;
+};
+  
+const MULTI_TILE_NEIGHBOUR_RULES = buildNeighbourRules();
+
 export class TinyTownScene extends Phaser.Scene {
     private highlightBorders: Phaser.GameObjects.Graphics[] = []; 
     private highlightLabels: Phaser.GameObjects.Text[] = [];
@@ -21,7 +89,7 @@ export class TinyTownScene extends Phaser.Scene {
     public readonly TILE_SIZE = 16; //Size in pixels
 
     ////DEBUG / FEATURE FLAGS////
-    private readonly allowOverwriting: boolean = false; // Allows LLM to overwrite placed tiles
+    private readonly allowOverwriting: boolean = true; // Allows LLM to overwrite placed tiles
     
     // Phaser map & tileset references
     private map!: Phaser.Tilemaps.Tilemap;
@@ -467,6 +535,7 @@ export class TinyTownScene extends Phaser.Scene {
         };
     }
 
+
     public clearLayerHighlights() {
         this.highlightBorders.forEach(g => g.destroy());
         this.highlightLabels.forEach(t => t.destroy());
@@ -638,54 +707,192 @@ export class TinyTownScene extends Phaser.Scene {
         const worldH = this.CANVAS_HEIGHT * 16 * this.SCALE;
         cam.centerOn(worldW / 2, worldH / 2);
         console.log('View reset to default');
+
+    getTilePriority(tileIndex: number): number {
+        if (tileIndex === -1 || tileIndex === -2) {
+            return TILE_PRIORITY.EMPTY; // -1
+        }
+        if ([44, 45, 46, 56, 58, 68, 69, 70].includes(tileIndex)) {
+             return TILE_PRIORITY.FENCE; // 3
+        }
+
+        if ((tileIndex >= 48 && tileIndex <= 67) || (tileIndex >= 72 && tileIndex <= 91)) {
+            return TILE_PRIORITY.HOUSE; // 4
+        }
+
+        if ( (tileIndex >= 3 && tileIndex <= 23) || (tileIndex >= 27 && tileIndex <= 35) ) {
+              return TILE_PRIORITY.FOREST; // 1
+         }
+
+        if ([57, 94, 95, 106, 107, 130, 131].includes(tileIndex)) {
+             return TILE_PRIORITY.DECOR; // 2
+        }
+        if (tileIndex >= 0 && tileIndex <= 2) {
+             return TILE_PRIORITY.GRASS; // 0
+        }
+        return TILE_PRIORITY.GRASS; // 0
+
     }
 
     putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false){
-        console.group("putFeatureAtSelection")
-        console.log("generatedData");
-        console.log(generatedData);
-        let x = Math.min(this.selectionStart.x, this.selectionEnd.x);
-        let y = Math.min(this.selectionStart.y, this.selectionEnd.y);
-        if(worldOverride)
-        {
-            x = 0;
-            y = 0;
-        }
-        this.LastData = structuredClone(generatedData)
-        this.LastData.grid = Array(this.CANVAS_HEIGHT).fill(0).map(() => Array(this.CANVAS_WIDTH).fill(-1));
-        var tempGrid = this.featureLayer?.getTilesWithin(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
-        console.log("tempGrid");
-        console.log(tempGrid);
-        for (var tile of tempGrid || []){
-            if (tile.index != -1){
-                this.LastData.grid[tile.y][tile.x] = tile.index;
-            }
-        }
-        console.log("this.LastData");
-        console.log(this.LastData);
-        if(this.allowOverwriting){
-            this.featureLayer?.putTilesAt(generatedData.grid, x,y);
-        }else{
-            for (let row = 0; row < generatedData.grid.length; row++) {
-                for (let col = 0; col < generatedData.grid[row].length; col++) {
-                    const tileValue = generatedData.grid[row][col];
-                    if (acceptneg) {
-                        this.featureLayer?.putTileAt(tileValue,x + col, y + row);
-                    }
-                    else if (tileValue !== -1) {
-                        if(tileValue == -2){
-                            this.featureLayer?.putTileAt(-1,x + col, y + row);
-                            continue;
-                        }
-                        const currentTile = this.featureLayer?.getTileAt(x + col, y + row);
-                        if (!currentTile || currentTile.index === -1) {
-                            this.featureLayer?.putTileAt(tileValue, x + col, y + row);
-                        }
+        //console.groupCollapsed(`Placing: ${generatedData.name} (Override: ${worldOverride}, Undo: ${acceptneg}, AllowOverwrite: ${this.allowOverwriting})`);
+
+        let startX = 0;
+        let startY = 0;
+        const changed: { x: number; y: number }[] = [];
+
+        if (!worldOverride) {
+             if (this.selectionStart && this.selectionEnd &&
+                 (this.selectionStart.x !== this.selectionEnd.x || this.selectionStart.y !== this.selectionEnd.y || this.isSelecting || this.selectedTiles.dimensions.width > 0)) {
+                 startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
+                 startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
+             } else {
+                 this.clearSelection();
+             }
+         }
+
+        if (!acceptneg) {
+            this.LastData = {
+                name: 'Undo State',
+                description: 'Previous map feature state',
+                grid: [],
+                points_of_interest: new Map(),
+            };
+            const currentTiles = this.featureLayer?.getTilesWithin(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT) || [];
+            this.LastData.grid = Array(this.CANVAS_HEIGHT).fill(0).map(() => Array(this.CANVAS_WIDTH).fill(-1));
+            currentTiles.forEach(tile => {
+                if (tile.index !== -1) {
+                    if (tile.y >= 0 && tile.y < this.CANVAS_HEIGHT && tile.x >= 0 && tile.x < this.CANVAS_WIDTH) {
+                        this.LastData.grid[tile.y][tile.x] = tile.index;
                     }
                 }
+            });
+        }
+
+        const gridToPlace = generatedData.grid;
+        const gridHeight = gridToPlace.length;
+        const gridWidth = gridHeight > 0 ? (gridToPlace[0]?.length ?? 0) : 0;
+
+        if (!this.featureLayer) {
+            console.error("Feature layer is missing, cannot place tiles.");
+            console.groupEnd();
+            return;
+        }
+         if (gridWidth === 0 || gridHeight === 0) {
+             console.groupEnd();
+             return;
+         }
+
+        // Placement Logic 
+        for (let yOffset = 0; yOffset < gridHeight; yOffset++) {
+            for (let xOffset = 0; xOffset < gridWidth; xOffset++) {
+                const placeX = startX + xOffset;
+                const placeY = startY + yOffset;
+
+                if (placeX < 0 || placeX >= this.CANVAS_WIDTH || placeY < 0 || placeY >= this.CANVAS_HEIGHT) {
+                    continue;
+                }
+
+                const newTileIndex = gridToPlace[yOffset]?.[xOffset];
+                 if (newTileIndex === undefined) {
+                     continue;
+                 }
+
+                // Undo
+                if (acceptneg) {
+                    this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
+                    continue;
+                }
+
+                // Clear
+                 if (newTileIndex === -2) {
+                    this.featureLayer?.putTileAt(-1, placeX, placeY);
+                    continue;
+                }
+
+                // Skip empty tiles
+                if (newTileIndex === -1) {
+                    continue;
+                }
+
+                const currentTile = this.featureLayer.getTileAt(placeX, placeY);
+                const currentTileIndex = currentTile ? currentTile.index : -1;
+
+                if (this.allowOverwriting) {
+                    const newPriority = this.getTilePriority(newTileIndex);
+                    const currentPriority = this.getTilePriority(currentTileIndex);
+
+                    // // Explicit Check for fence and house no longer needed
+                    // if (newPriority === TILE_PRIORITY.FENCE && currentPriority === TILE_PRIORITY.HOUSE) {
+                    //      continue; // Skip to the next tile in the loop
+                    // }
+
+                    // console.log(`Check (${placeX}, ${placeY}): New P${newPriority} (ID ${newTileIndex}) vs Current P${currentPriority} (ID ${currentTileIndex})`);
+                    if (newPriority >= currentPriority) {
+                         // console.log(`   Placing: New P${newPriority} >= Current P${currentPriority} at (${placeX}, ${placeY})`);
+                        this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
+                        changed.push({ x: placeX, y: placeY });
+                    } else {
+                        // console.log(`   Skipping: New P${newPriority} < Current P${currentPriority} at (${placeX}, ${placeY})`);
+                    }
+                } else {
+                    if (currentTileIndex === -1) {
+                         this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
+                         changed.push({ x: placeX, y: placeY });
+                    }
+                } 
+            } 
+        } 
+
+        this.pruneBrokenTrees(changed);
+        console.groupEnd();
+    }
+
+    pruneBrokenTrees(changed?: { x: number; y: number }[]): void {
+        if (!this.featureLayer) return;
+    
+        const EXPANSION = 2; // Expand the search area by this many tiles
+
+        let minX = 0;
+        let minY = 0;
+        let maxX = this.featureLayer.layer.width  - 1;
+        let maxY = this.featureLayer.layer.height - 1;
+        //const time = performance.now();
+        //let tilesScanned = 0;
+    
+    if (changed && changed.length) {
+        const xs = changed.map(c => c.x);
+        const ys = changed.map(c => c.y);
+        minX = Math.max(0, Math.min(...xs) - EXPANSION);
+        minY = Math.max(0, Math.min(...ys) - EXPANSION);
+        maxX = Math.min(this.featureLayer.layer.width  - 1, Math.max(...xs) + EXPANSION);
+        maxY = Math.min(this.featureLayer.layer.height - 1, Math.max(...ys) + EXPANSION);
+    }
+    
+        const toRemove: { x: number; y: number }[] = [];
+    
+        for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
+                const tile = this.featureLayer.getTileAt(x, y);
+                //tilesScanned++;
+                if (!tile) continue;
+        
+                const rules = MULTI_TILE_NEIGHBOUR_RULES.get(tile.index);
+                if (!rules) continue;
+        
+                const broken = rules.some(({ dx, dy, expected }) => {
+                const n = this.featureLayer.getTileAt(x + dx, y + dy);
+                return !n || n.index !== expected;
+                });
+        
+                if (broken) toRemove.push({ x, y });
             }
         }
-        console.groupEnd()
+    
+        toRemove.forEach(({ x, y }) => this.featureLayer!.putTileAt(-1, x, y));
+        //const timeTaken = performance.now() - time;
+        //console.log(`Pruned ${toRemove.length} tiles in ${timeTaken.toFixed(2)} ms (${tilesScanned} tiles scanned)`);
+
     }
 
     highlightTile(pointer: Phaser.Input.Pointer): void {
