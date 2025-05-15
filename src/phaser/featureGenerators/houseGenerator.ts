@@ -80,7 +80,7 @@ export class HouseGenerator implements FeatureGenerator {
       const selection = scene.getSelection();
       var tmp = this.generate(selection, args)
       scene.putFeatureAtSelection(tmp);
-      return "House added. at: " + lastHouseX + ", " + lastHouseY + ". the connection point is at: " + (lastHouseX+Math.floor(lastHouseWidth/2)) + ", " + (lastHouseY+lastHouseHeight);
+      return "House added. at: (" + lastHouseX + ", " + lastHouseY + "). the connection point is at: (" + (lastHouseX+Math.floor(lastHouseWidth/2)) + ", " + (lastHouseY+lastHouseHeight)+").";
     },
     {
       name: "house",
