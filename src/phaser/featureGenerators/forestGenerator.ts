@@ -35,6 +35,8 @@ export class ForestGenerator implements FeatureGenerator {
   }
 
   static forestArgsSchema = z.object({
+    x: z.number().min(0).max(40).optional(),
+    y: z.number().min(0).max(25).optional(),
     width: z.number().min(1).max(50).optional(),
     height: z.number().min(1).max(50).optional(),
     mushrooms: z.number().min(0).max(100).optional(),
@@ -66,7 +68,7 @@ export class ForestGenerator implements FeatureGenerator {
       name: "forest",
       schema: ForestGenerator.forestArgsSchema,
       description:
-        "Adds a forest to the map. Optional args: width, height, mushrooms, yellowTrees, greenTrees.",
+        "Adds a forest to the map. Optional args: x, y, width, height, mushrooms, yellowTrees, greenTrees.",
     }
   );
 
@@ -77,10 +79,12 @@ export class ForestGenerator implements FeatureGenerator {
     const grid = mapSection.grid;
     const width = mapSection.width;
     const height = mapSection.height;
+    const xstrt = args?.x ?? 0;
+    const ystrt = args?.y ?? 0;
 
     // Step 1: Generate base random forest
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
+    for (let y = ystrt; y < height+ystrt; y++) {
+      for (let x = xstrt; x < width+xstrt; x++) {
         if (grid[y][x] !== -1 || Math.random() > TREE_CHANCE) continue;
 
         const plantType = Phaser.Math.Between(0, 100);
