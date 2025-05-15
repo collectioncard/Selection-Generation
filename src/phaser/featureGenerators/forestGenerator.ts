@@ -53,13 +53,13 @@ export class ForestGenerator implements FeatureGenerator {
       const selection = scene.getSelection();
 
       // Resize grid if specified
-      if (args.width && args.height) {
-        selection.width = args.width;
-        selection.height = args.height;
-        selection.grid = Array.from({ length: args.height }, () =>
-          Array(args.width).fill(-1)
-        );
-      }
+      // if (args.width && args.height) {
+      //   selection.width = args.width;
+      //   selection.height = args.height;
+      //   selection.grid = Array.from({ length: args.height }, () =>
+      //     Array(args.width).fill(-1)
+      //   );
+      // }
 
       scene.putFeatureAtSelection(this.generate(selection, args));
       return "Forest added.";
@@ -77,10 +77,11 @@ export class ForestGenerator implements FeatureGenerator {
     args?: z.infer<typeof ForestGenerator.forestArgsSchema>
   ): completedSection {
     const grid = mapSection.grid;
-    const width = mapSection.width;
-    const height = mapSection.height;
+    const width = args?.width ?? 0;
+    const height = args?.height ?? 0;
     const xstrt = args?.x ?? 0;
     const ystrt = args?.y ?? 0;
+    console.log(grid)
 
     // Step 1: Generate base random forest
     for (let y = ystrt; y < height+ystrt; y++) {
@@ -134,8 +135,8 @@ export class ForestGenerator implements FeatureGenerator {
 
     // Step 2: Add specific elements over the random forest
     const placeables: { x: number; y: number }[] = [];
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
+    for (let y = ystrt; y < height+ystrt; y++) {
+      for (let x = xstrt; x < width+xstrt; x++) {
         if (grid[y][x] === -1) {
           placeables.push({ x, y });
         }

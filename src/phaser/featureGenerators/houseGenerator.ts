@@ -91,7 +91,7 @@ export class HouseGenerator implements FeatureGenerator {
 
   generate(mapSection: generatorInput, args?: z.infer<typeof HouseGenerator.houseArgsSchema>): completedSection {
     const grid = mapSection.grid;
-    
+    console.log(grid)
     const houseWidth = args?.width ?? Phaser.Math.Between(MIN_HOUSE_WIDTH, mapSection.width - BORDER_PADDING * 2);
     const houseHeight = args?.height ?? Phaser.Math.Between(MIN_HOUSE_HEIGHT, mapSection.height - BORDER_PADDING * 2);
     const houseX = args?.x ?? Phaser.Math.Between(BORDER_PADDING, mapSection.width - houseWidth - BORDER_PADDING);
