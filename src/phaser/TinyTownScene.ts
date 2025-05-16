@@ -89,6 +89,9 @@ export class TinyTownScene extends Phaser.Scene {
     // graphics object we’ll use for the outside mask
     private overlayMask!: Phaser.GameObjects.Graphics;
 
+    // Auto-naming layers
+    private autoLayerCounter: number = 0;
+
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
     public readonly CANVAS_HEIGHT = 25; // ^^^
@@ -663,8 +666,8 @@ export class TinyTownScene extends Phaser.Scene {
                 const ty  = sy + row;
                 const idx = this.featureLayer.getTileAt(tx, ty)?.index ?? -1;
                 if (idx >= 0) {
-                layer.putTileAt(idx, col, row);
-                this.featureLayer.removeTileAt(tx, ty);
+                    layer.putTileAt(idx, col, row);
+                    this.featureLayer.removeTileAt(tx, ty);
                 }
             }
         }
@@ -677,6 +680,10 @@ export class TinyTownScene extends Phaser.Scene {
 
         this.layerTree.add(name, [[sx, sy],[ex, ey]], w, h);
         this.layerTree.printTree();
+
+        window.dispatchEvent(new CustomEvent('layerCreated', {
+            detail: name
+        }));
     }
 
     public selectLayer(name: string) {
@@ -993,6 +1000,12 @@ export class TinyTownScene extends Phaser.Scene {
         } 
 
         this.pruneBrokenTrees(changed);
+        // —— AUTO-LAYER CREATION ——
+        if (changed.length > 0) {
+            this.autoLayerCounter = (this.autoLayerCounter || 0) + 1;
+            const autoName = `Layer ${this.autoLayerCounter}`;
+            this.nameSelection(autoName);
+        }
         console.groupEnd();
     }
 
