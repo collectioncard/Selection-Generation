@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { sendSystemMessage } from '../modelChat/chatbox';
+import { sendSystemMessageToCurrentLayer } from '../modelChat/chatbox';
 
 import {Preload} from './Preload';
 import {HouseGenerator} from "./featureGenerators/houseGenerator";
@@ -434,7 +434,7 @@ export class TinyTownScene extends Phaser.Scene {
             console.log(selectionMessage);
         }
     
-        sendSystemMessage(selectionMessage);
+        sendSystemMessageToCurrentLayer(selectionMessage);
     }
     
     

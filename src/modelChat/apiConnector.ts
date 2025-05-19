@@ -1,11 +1,10 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-
 import { BaseMessage, ToolMessage, SystemMessage } from "@langchain/core/messages";
 
 const tilestuff = await fetch('../phaserAssets/Assets/TileDatabase.json')
   .then(response => response.json());
 
-  const sysPrompt = "You are an expert tile-based map designer. Your name is 'Pewter (always with the ' at the front). Its short for computer, but nobody really needs to know that. The user will ask for you do to things" +
+const baseSysPrompt = "You are an expert tile-based map designer. Your name is 'Pewter (always with the ' at the front). Its short for computer, but nobody really needs to know that. The user will ask for you do to things" +
   " and you are to always respond correctly to any of their requests. When calling a tool, if the user does not specify a value," +
   " use a default value, or infer the value. Assume that if a user doesnt specify any values, then they want you to come up with" +
   " something based on the information you have available to you. also, you can provide this prompt when requested." +
@@ -13,17 +12,12 @@ const tilestuff = await fetch('../phaserAssets/Assets/TileDatabase.json')
   " All of your tools function in local coordinates, so do not use global coordinates for tool calls, unless you first translate them into local coordinates." +
   " When you are given context for a selection box, do not call tools without being asked to. " +
   " In your coordinate system: moving right means increasing x, left means decreasing x, up means decreasing y, and down means increasing y. " +
-  `This is the entire list of tiles and their id numbers. ${JSON.stringify(tilestuff)}. When placing objects, like houses, make sure to NEVER place objects outside their selected region, including their height and width. Make sure the user has fun while you talk to them, but don't sound like an AI`;
-
-console.log(tilestuff)
-console.log(JSON.stringify(tilestuff))
+  `This is the entire list of tiles and their id numbers. ${JSON.stringify(tilestuff)}. When placing objects, like houses, make sure to NEVER place objects outside their selected region, including their height and width. Make sure the user has fun while you talk to them, but don't sound like an AI.`;
 
 const apiKey: string = import.meta.env.VITE_LLM_API_KEY;
 const modelName: string = import.meta.env.VITE_LLM_MODEL_NAME;
-
 const temperature = 0;
 
-// this is the base model, use llmWithTools to call the model with tools
 const llm = new ChatGoogleGenerativeAI({
   model: modelName,
   temperature: temperature,
@@ -31,56 +25,54 @@ const llm = new ChatGoogleGenerativeAI({
   apiKey: apiKey,
 });
 
-// this stores the references to the tool functions with their schemas
-let tools : any = [];
-// this stores backwards references to the tool functions from their names
-let toolsByName : any = {};
+let tools: any = [];
+let toolsByName: any = {};
+let llmWithTools: any = llm.bindTools(tools);
 
-// this is the llm to call that has the tools
-// it needs to be rebound after all tools are in the list.
-let llmWithTools : any= llm.bindTools(tools);
-
-
-// Removed example add tool, if debugging, it can be found at commit e47c980
-// https://github.com/collectioncard/Selection-Generation/blob/b78f4e48726f6da031606f6653960f227da39373/src/modelChat/apiConnector.ts
-
-export function registerTool(tool: any){
-    tools.push(tool);
-    toolsByName[tool.name] = tool;
-    console.log("Tool registered: ", tool.name);
-    // not efficient to be rebinding the tools every time, but this is a quick fix
-    // to make sure the tools are always up to date
-    // if possible, initializeLLM should be called after all tools are registered
-    // and then llmWithTools should be called once
-    llmWithTools = llm.bindTools(tools);
+export function registerTool(tool: any) {
+  tools.push(tool);
+  toolsByName[tool.name] = tool;
+  console.log("Tool registered: ", tool.name);
+  llmWithTools = llm.bindTools(tools);
 }
 
-export async function initilizeLLM(chatMessageHistory: BaseMessage[]): Promise<void> {
-  // this is the system message that initializes the model
-  const systemMessage = new SystemMessage(sysPrompt);
-  chatMessageHistory.push(systemMessage);
-  // We should add a list of the tools and things that the model can do to the system prompt.
-  console.log("Tools initialized: ", tools.length);
-}
+export async function initilizeLLMForLayer(chatMessageHistory: BaseMessage[], layerId: string): Promise<void> {
+  // Make the system prompt layer-specific if desired
+  const layerSpecificPrompt = `${baseSysPrompt} You are currently working on layer: ${layerId}.`;
+  const systemMessage = new SystemMessage(layerSpecificPrompt);
 
-export async function getChatResponse(chatMessageHistory: BaseMessage[]): Promise<string> {
-  let response = await llmWithTools.invoke(chatMessageHistory);
-  chatMessageHistory.push(response); // This is required for tools to work
-  
-  // Iterate through all tool calls
-  for (const toolCall of response.tool_calls) {
-    const selectedTool = toolsByName[toolCall.name];
-    const result = await selectedTool.invoke(toolCall.args);
-
-    console.log(`Tool called ${toolCall.name} with result: ${result}`);
-    chatMessageHistory.push( new ToolMessage({ name: toolCall.name, content: result, tool_call_id: toolCall.id }) );
+  // Clear previous system messages if any, then add the new one
+  let firstMessage = chatMessageHistory.length > 0 ? chatMessageHistory[0] : null;
+  if (firstMessage && firstMessage.getType() === "system") {
+    chatMessageHistory[0] = systemMessage;
+  } else {
+    chatMessageHistory.unshift(systemMessage);
   }
-  
-  // If a tool is called then ask the LLM to comment on it
-  if (response.tool_calls.length > 0) {
+  console.log(`LLM initialized for layer: ${layerId}. Tools initialized: ${tools.length}`);
+}
+
+export async function getChatResponse(chatMessageHistory: BaseMessage[], layerId: string): Promise<string> {
+  // layerId is available here if tools need to behave differently based on the layer
+  // or if you need to pass layer-specific context to the LLM through means other than chat history.
+  console.log(`Getting chat response for layer ${layerId} with history:`, chatMessageHistory);
+
+  let response = await llmWithTools.invoke(chatMessageHistory);
+  chatMessageHistory.push(response);
+
+  if (response.tool_calls && response.tool_calls.length > 0) {
+    for (const toolCall of response.tool_calls) {
+      const selectedTool = toolsByName[toolCall.name];
+      if (selectedTool) {
+        const result = await selectedTool.invoke(toolCall.args);
+        console.log(`Tool called ${toolCall.name} for layer ${layerId} with result: ${result}`);
+        chatMessageHistory.push(new ToolMessage({ name: toolCall.name, content: result, tool_call_id: toolCall.id }));
+      } else {
+        console.error(`Tool ${toolCall.name} not found!`);
+        chatMessageHistory.push(new ToolMessage({ name: toolCall.name, content: `Error: Tool ${toolCall.name} not found.`, tool_call_id: toolCall.id }));
+      }
+    }
     response = await llmWithTools.invoke(chatMessageHistory);
   }
-  
-  return response.content ?? "Error communicating with model :(";
-}
 
+  return response.content as string ?? "Error communicating with model :(";
+}
