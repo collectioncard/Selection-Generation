@@ -111,6 +111,8 @@ async function initializeApp() {
         }
     });
 
+    // FIXED: Define treeContainer BEFORE using it in event listeners
+    const treeContainer = document.getElementById('layer-tree') as HTMLDivElement;
     const toggleBtn = document.getElementById('toggle-highlights') as HTMLButtonElement;
     let highlightMode = false;
     let currentSelectionName: string | null = null;
@@ -126,32 +128,38 @@ async function initializeApp() {
             updateHighlights();
         }
     });
-    // --- END OF BUTTON LISTENERS ---
 
+    // FIXED: Layer tree toggle - now treeContainer is properly defined
+    const toggleTreeBtn = document.getElementById('toggle-tree') as HTMLButtonElement;
+    toggleTreeBtn.addEventListener('click', () => {
+        const isHidden = treeContainer.classList.toggle('hidden');
+        toggleTreeBtn.textContent = isHidden ? '☰ Layers' : '✖ Close';
+        console.log('Layer tree toggled:', isHidden ? 'hidden' : 'visible');
+    });
 
     // Initial build of layer tree and setting "Root" context
     buildLayerTree(); // Build the UI for layers first
     await switchChatContext("Root"); // Explicitly set and initialize "Root" chat
     console.log("Initial chat context set to Root. Current Layer ID:", getCurrentChatLayerId());
 
-
     // Event listeners for layer changes from Phaser scene
-    window.addEventListener('layerCreated', (event: Event) => {
+    window.addEventListener('layerCreated', async (event: Event) => {
         const customEvent = event as CustomEvent;
         const newLayerName = customEvent.detail as string;
+        console.log(`Layer created: ${newLayerName}`);
         buildLayerTree();
         if (highlightMode) updateHighlights();
-        // Optional: Automatically switch to the new layer's chat
-        // await switchChatContext(newLayerName);
-        // console.log(`Switched to newly created layer's chat: ${newLayerName}`);
+        
+        // Auto-switch to the new layer's chat context
+        await switchChatContext(newLayerName);
+        console.log(`Auto-switched to newly created layer's chat: ${newLayerName}`);
     });
 
-    window.addEventListener('layerSelected', (event: Event) => { // This is UI-driven selection
+    window.addEventListener('layerSelected', (event: Event) => {
         const customEvent = event as CustomEvent;
         const selectedLayerName = customEvent.detail as string;
-        currentSelectionName = selectedLayerName; // For highlight logic
+        currentSelectionName = selectedLayerName;
         if (highlightMode) updateHighlights();
-        // The click handlers in makeNodeElement are already calling switchChatContext
         console.log(`UI Layer selected: ${selectedLayerName}`);
     });
 
@@ -159,10 +167,10 @@ async function initializeApp() {
         const customEvent = event as CustomEvent;
         const deletedLayerId = customEvent.detail as string;
         console.log(`main.ts: layerDeleted event for ${deletedLayerId}`);
-        handleLayerDeleted(deletedLayerId); // This will switch to "Root" if current is deleted
+        handleLayerDeleted(deletedLayerId);
         buildLayerTree();
         if (currentSelectionName === deletedLayerId) {
-            currentSelectionName = getCurrentChatLayerId(); // Update to new current (likely "Root")
+            currentSelectionName = getCurrentChatLayerId();
         }
         if (highlightMode) updateHighlights();
     });
@@ -177,8 +185,6 @@ async function initializeApp() {
             currentSelectionName = newName;
         }
         if (highlightMode) updateHighlights();
-        // If the currently active chat was the one renamed, chatbox's handleLayerRenamed updates its internal currentLayerId.
-        // We just need to ensure the UI (title) reflects this, which handleLayerRenamed should do.
     });
 
     // Tile palette and mode button listeners
@@ -198,7 +204,7 @@ async function initializeApp() {
 
     const modeButton = document.getElementById('mode-selection');
     if (modeButton) {
-        const scene = getScene(); // scene is guaranteed to exist here
+        const scene = getScene();
         modeButton.textContent = `Mode: ${scene.isPlacingMode ? 'Place' : 'Select'}`;
         modeButton.addEventListener('click', () => {
             scene.isPlacingMode = !scene.isPlacingMode;
@@ -206,18 +212,10 @@ async function initializeApp() {
             sendSystemMessageToCurrentLayer(`Switched to ${scene.isPlacingMode ? 'Place' : 'Select'} mode.`);
         });
     }
-    const treeContainer = document.getElementById('layer-tree') as HTMLDivElement;
-    // treeContainer.classList.add('hidden'); // Keep it hidden initially as per original logic
-
-    const toggleTreeBtn = document.getElementById('toggle-tree') as HTMLButtonElement;
-    toggleTreeBtn.addEventListener('click', () => {
-    const isHidden = treeContainer.classList.toggle('hidden');
-    toggleTreeBtn.textContent = isHidden ? '☰ Layers' : '✖ Close';
-    });
 
 } // End of initializeApp
 
-// --- Helper functions for layer tree UI (keep as is or move if preferred) ---
+// --- Helper functions for layer tree UI ---
 function findNode(name: string, node: any): any | null {
     if (!node) return null;
     if (node.Name === name) return node;
@@ -228,7 +226,7 @@ function findNode(name: string, node: any): any | null {
     return null;
 }
 
-function makeNodeElement(node: any, scene: TinyTownScene): HTMLLIElement { // Pass scene
+function makeNodeElement(node: any, scene: TinyTownScene): HTMLLIElement {
     const li = document.createElement('li');
     const label = document.createElement('div');
     label.textContent = node.Name;
@@ -241,20 +239,22 @@ function makeNodeElement(node: any, scene: TinyTownScene): HTMLLIElement { // Pa
         const childUl = document.createElement('ul');
         childUl.classList.add('nested');
         node.Children.forEach((child: any) => {
-            childUl.appendChild(makeNodeElement(child, scene)); // Pass scene
+            childUl.appendChild(makeNodeElement(child, scene));
         });
         li.appendChild(childUl);
 
-        label.addEventListener('click', async (event) => { // Make async
+        label.addEventListener('click', async (event) => {
             event.stopPropagation();
+            console.log(`Clicking on folder layer: ${node.Name}`);
             li.classList.toggle('open');
-            // const scene = getScene(); // Already have scene
             scene.selectLayer(node.Name);
             scene.zoomToLayer(node.Name);
             scene.clearSelection();
-            // currentSelectionName = node.Name; // Handled by layerSelected event
-            // if (highlightMode) updateHighlights(); // Handled by layerSelected event
-            await switchChatContext(node.Name); // Await this
+            
+            console.log(`About to switch chat context to: ${node.Name}`);
+            await switchChatContext(node.Name);
+            console.log(`Chat context switched. Current layer ID: ${getCurrentChatLayerId()}`);
+            
             window.dispatchEvent(new CustomEvent('layerSelected', { detail: node.Name }));
         });
     } else {
@@ -262,15 +262,17 @@ function makeNodeElement(node: any, scene: TinyTownScene): HTMLLIElement { // Pa
         label.classList.add('file-label');
         li.appendChild(label);
 
-        label.addEventListener('click', async (event) => { // Make async
+        label.addEventListener('click', async (event) => {
             event.stopPropagation();
-            // const scene = getScene(); // Already have scene
+            console.log(`Clicking on file layer: ${node.Name}`);
             scene.selectLayer(node.Name);
             scene.zoomToLayer(node.Name);
             scene.clearSelection();
-            // currentSelectionName = node.Name; // Handled by layerSelected event
-            // if (highlightMode) updateHighlights(); // Handled by layerSelected event
-            await switchChatContext(node.Name); // Await this
+            
+            console.log(`About to switch chat context to: ${node.Name}`);
+            await switchChatContext(node.Name);
+            console.log(`Chat context switched. Current layer ID: ${getCurrentChatLayerId()}`);
+            
             window.dispatchEvent(new CustomEvent('layerSelected', { detail: node.Name }));
         });
     }
@@ -283,66 +285,92 @@ function buildLayerTree() {
         console.warn("Scene or layer tree not ready for buildLayerTree");
         return;
     }
-    const rootNode = scene.layerTree.Root; // Renamed for clarity
+    
+    const rootNode = scene.layerTree.Root;
     const treeContainer = document.getElementById('layer-tree') as HTMLDivElement;
+    
+    if (!treeContainer) {
+        console.error("Layer tree container not found!");
+        return;
+    }
+    
     treeContainer.innerHTML = '';
     const ul = document.createElement('ul');
 
+    // Create Root node with better styling
     const rootLi = document.createElement('li');
     rootLi.classList.add('file');
     const rootLabel = document.createElement('div');
     rootLabel.classList.add('file-label');
-    rootLabel.textContent = "Root (Global Context)";
+    rootLabel.textContent = "🌍 Root (Global)";
     rootLabel.style.fontWeight = "bold";
+    rootLabel.style.color = "#4CAF50";
     rootLi.appendChild(rootLabel);
-    rootLabel.addEventListener('click', async () => { // Make async
-        // const scene = getScene(); // Already have scene from outer scope
+    
+    rootLabel.addEventListener('click', async () => {
+        console.log('Clicking on Root layer');
         scene.resetView();
         scene.clearSelection();
-        // currentSelectionName = "Root"; // Or null, let layerSelected event handle it
-        // if (highlightMode) updateHighlights(); // Handled by layerSelected event
-        await switchChatContext("Root"); // Await this
+        
+        console.log('About to switch chat context to Root');
+        await switchChatContext("Root");
+        console.log(`Chat context switched to Root. Current layer ID: ${getCurrentChatLayerId()}`);
+        
         window.dispatchEvent(new CustomEvent('layerSelected', { detail: "Root" }));
     });
     ul.appendChild(rootLi);
 
-    rootNode.Children.forEach((child: any) => {
-        ul.appendChild(makeNodeElement(child, scene)); // Pass scene
-    });
+    // Add child layers
+    if (rootNode.Children && rootNode.Children.length > 0) {
+        rootNode.Children.forEach((child: any) => {
+            ul.appendChild(makeNodeElement(child, scene));
+        });
+    } else {
+        // Show a message when no layers exist
+        const noLayersLi = document.createElement('li');
+        noLayersLi.classList.add('file');
+        const noLayersLabel = document.createElement('div');
+        noLayersLabel.classList.add('file-label');
+        noLayersLabel.textContent = "📄 No layers yet";
+        noLayersLabel.style.fontStyle = "italic";
+        noLayersLabel.style.color = "#888";
+        noLayersLi.appendChild(noLayersLabel);
+        ul.appendChild(noLayersLi);
+    }
+    
     treeContainer.appendChild(ul);
-    // if (highlightMode) updateHighlights(); // Not needed here, layerSelected will trigger
+    console.log('Layer tree built successfully');
 }
 
-function updateHighlights() { // Kept as is, ensure currentSelectionName is managed correctly
+function updateHighlights() {
     const scene = getScene() as any;
-     if (!scene || !scene.layerTree || !scene.layerTree.Root) {
+    if (!scene || !scene.layerTree || !scene.layerTree.Root) {
         console.warn("Scene or layer tree not ready for updateHighlights");
         return;
     }
+    
     let namesToHighlight: string[];
-    const localCurrentSelectionName = getCurrentChatLayerId(); // Use the chat's current layer ID
+    const localCurrentSelectionName = getCurrentChatLayerId();
 
     if (localCurrentSelectionName && localCurrentSelectionName !== "Root") {
         const node = findNode(localCurrentSelectionName, scene.layerTree.Root);
-        if (node && node.Children.length > 0) { // If it's a folder, highlight children
+        if (node && node.Children.length > 0) {
             namesToHighlight = node.Children.map((c: any) => c.Name);
-        } else if (node) { // It's a file or empty folder, highlight itself
+        } else if (node) {
             namesToHighlight = [node.Name];
-        } else { // Fallback if node not found (should not happen for game layers)
+        } else {
             namesToHighlight = scene.layerTree.Root.Children.map((c: any) => c.Name);
         }
-    } else { // "Root" or null, highlight top-level game layers
+    } else {
         namesToHighlight = scene.layerTree.Root.Children.map((c: any) => c.Name);
     }
     scene.drawLayerHighlights(namesToHighlight);
 }
 
-
 function getRandEmoji(): string {
     let emoji = [':)', ':(', '>:(', ':D', '>:D', ':^D', ':(', ':D', 'O_O', ':P', '-_-', 'O_-', 'O_o', '𓆉', 'ジ', '⊂(◉‿◉)つ', '(｡◕‿‿◕｡)', '(⌐■_■)', '<|°_°|>', '<|^.^|>', ':P', ':>', ':C', ':}', ':/', 'ʕ ● ᴥ ●ʔ','(˶ᵔ ᵕ ᵔ˶)'];
     return emoji[Math.floor(Math.random() * emoji.length)];
 }
-
 
 // --- START THE APP ---
 initializeApp().then(() => {

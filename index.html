@@ -7,25 +7,25 @@
     <title>Selection Generation</title>
   </head>
   <body>
-  <div id="control-buttons">
-    <div id ="sidebar">
-      <button id="get-Coords">Get Selection</button>
-      <button id="toggle-highlights">Highlights</button>
-      <button id="">b3</button>
-      <button id="toggle-tree">☰ Layers</button>
-      <button>b4</button>
-      <div id="selection-controls">
-        <button id="all-selection">Select All</button>
-        <button id="clear-selected-tiles">Clear Tiles</button>
-        <button id="clear-selection">Clear Selection</button>
-        <button id="mode-selection">Mode: Place</button>
+    <div id="app-container">
+      <!-- Left Sidebar - Controls -->
+      <div id="control-buttons">
+        <div id="sidebar">
+          <button id="get-Coords">Get Selection</button>
+          <button id="toggle-highlights">Enable Highlights</button>
+          <button id="">b3</button>
+          <button>b4</button>
+          
+          <div id="selection-controls">
+            <button id="all-selection">Select All</button>
+            <button id="clear-selected-tiles">Clear Tiles</button>
+            <button id="clear-selection">Clear Selection</button>
+            <button id="mode-selection">Mode: Place</button>
+          </div>
+        </div>
       </div>
-      <div id="layer-tree" class="hidden"></div>
-    </div>
-  </div>
-    <div id="map">
-      <div id="tile-picker">
-        <!-- <div id="tile-picker"> -->
+      <div id="map-container">
+        <div id="tile-picker">
           <h3>Tile Palette</h3>
           <details>
             <summary>Background Tiles</summary>
@@ -193,16 +193,42 @@
         </div>
         
       <!-- </div> -->
+      <div id="map">
+        <!-- Your Phaser game canvas will be inserted here -->
+      </div>
     </div>
+
+    <!-- Right Sidebar - Chat -->
+    <div id="llm-chat">
+      <h3 id="llm-chat-title">Chat - Root</h3>
+      <ul id="chat-history">
+        <!-- Messages will appear here -->
+      </ul>
+      <form id="llm-chat-form" autocomplete="off">
+        <input type="text" id="llm-chat-input" placeholder="Message Root..."/>
+        <button type="submit" id="llm-chat-submit">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Layer Tree Toggle (Floating) -->
+  <button id="toggle-tree">☰ Layers</button>
+  
+  <!-- Layer Tree (Floating Panel) -->
+  <div id="layer-tree" class="hidden"></div>
+  
+  <!-- Context Menu -->
   <div id="layer-context-menu">
     <ul>
       <li id="ctx-rename">✏️ Rename Layer</li>
       <li id="ctx-delete">🗑️ Delete Layer</li>
     </ul>
   </div>
+  
+  <!-- Delete Modal -->
   <div id="delete-modal" class="modal hidden">
     <div class="modal-content">
-      <p>How would you like to delete “<span id="modal-layer-name"></span>”?</p>
+      <p>How would you like to delete "<span id="modal-layer-name"></span>"?</p>
       <div class="modal-buttons">
         <button id="btn-delete-only">Remove Layer Only</button>
         <button id="btn-delete-with-assets">Remove Layer & Assets</button>
@@ -210,17 +236,7 @@
       </div>
     </div>
   </div>
-  <div id="map"></div>
-  <div id="llm-chat">
-    <div>
-      <h3 id="llm-chat-title" style="text-align: center; margin-top: 0; padding: 10px; border-bottom: 1px solid #ccc;">Chat</h3>
-      <ul id="chat-history"></ul>
-      <form id="llm-chat-form" autocomplete="off">
-        <input type="text" id="llm-chat-input" placeholder="Send a message"/>
-        <button type="submit" id="llm-chat-submit">Send</button>
-      </form>
-    </div>
-  </div>
+
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
