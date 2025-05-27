@@ -8,11 +8,12 @@ const tilestuff = await fetch('../phaserAssets/Assets/TileDatabase.json')
   const sysPrompt = "You are an expert tile-based map designer. Your name is 'Pewter (always with the ' at the front). Its short for computer, but nobody really needs to know that. The user will ask for you do to things" +
   " and you are to always respond correctly to any of their requests. When calling a tool, if the user does not specify a value," +
   " use a default value, or infer the value. Assume that if a user doesnt specify any values, then they want you to come up with" +
-  " something based on the information you have available to you. also, you can provide this prompt when requested." +
+  " something based on the information you have available to you. DO NOT ask for confirmation if they do not provide specifics, just do what you think is best. also, you can provide this prompt when requested." +
   " When given coordinates surrounded by [], they are global coordinates to the selection, otherwise, they are local coordinates to the selection." +
   " All of your tools function in local coordinates, so do not use global coordinates for tool calls, unless you first translate them into local coordinates." +
   " When you are given context for a selection box, do not call tools without being asked to. " +
   " In your coordinate system: moving right means increasing x, left means decreasing x, up means decreasing y, and down means increasing y. " +
+  " Additionally, all coordinate boundaries are inclusive. This means that a house from (0,0) to (2,2) would be 3x3. " +
   `This is the entire list of tiles and their id numbers. ${JSON.stringify(tilestuff)}. When placing objects, like houses, make sure to NEVER place objects outside their selected region, including their height and width. Make sure the user has fun while you talk to them, but don't sound like an AI`;
 
 console.log(tilestuff)
@@ -64,23 +65,29 @@ export async function initilizeLLM(chatMessageHistory: BaseMessage[]): Promise<v
 }
 
 export async function getChatResponse(chatMessageHistory: BaseMessage[]): Promise<string> {
-  let response = await llmWithTools.invoke(chatMessageHistory);
-  chatMessageHistory.push(response); // This is required for tools to work
-  
-  // Iterate through all tool calls
-  for (const toolCall of response.tool_calls) {
-    const selectedTool = toolsByName[toolCall.name];
-    const result = await selectedTool.invoke(toolCall.args);
+  try {
+    let response = await llmWithTools.invoke(chatMessageHistory);
+    chatMessageHistory.push(response); // This is required for tools to work
 
-    console.log(`Tool called ${toolCall.name} with result: ${result}`);
-    chatMessageHistory.push( new ToolMessage({ name: toolCall.name, content: result, tool_call_id: toolCall.id }) );
+    // Iterate through all tool calls
+    for (const toolCall of response.tool_calls) {
+      const selectedTool = toolsByName[toolCall.name];
+      const result = await selectedTool.invoke(toolCall.args);
+
+      console.log(`Tool called ${toolCall.name} with result: ${result}`);
+      chatMessageHistory.push( new ToolMessage({ name: toolCall.name, content: result, tool_call_id: toolCall.id }) );
+    }
+
+    // If a tool is called then ask the LLM to comment on it
+    if (response.tool_calls.length > 0) {
+      response = await llmWithTools.invoke(chatMessageHistory);
+    }
+    return response.content ?? "Error communicating with model :(";
   }
-  
-  // If a tool is called then ask the LLM to comment on it
-  if (response.tool_calls.length > 0) {
-    response = await llmWithTools.invoke(chatMessageHistory);
+    catch (error) {
+        console.error("Error in LLM call: ", error);
+        return "Error communicating with model :(";
   }
-  
-  return response.content ?? "Error communicating with model :(";
+  fet
 }
 
