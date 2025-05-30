@@ -306,15 +306,7 @@ function findNode(name: string, node: any): any | null {
 function makeNodeElement(node: any): HTMLLIElement {
     const li = document.createElement('li')
     let label: HTMLDivElement
-    
-    li.dataset.name = node.Name;
-    li.setAttribute('draggable', 'true');
-    li.addEventListener('dragstart', startDrag);
-    li.addEventListener('dragover', allowDrop);
-    li.addEventListener('drop', drop);
 
-    // create label and apply base classes
-    
     if (node.Children.length > 0) {
         li.classList.add('folder')
         label = document.createElement('div')
@@ -324,16 +316,20 @@ function makeNodeElement(node: any): HTMLLIElement {
         label = document.createElement('div')
         label.classList.add('file-label')
     }
-    label.textContent = node.Name
 
-    // highlight if this is the current selection
+    label.textContent = node.Name
+    label.dataset.name = node.Name;
+    label.setAttribute('draggable', 'true');
+    label.addEventListener('dragstart', startDrag);
+    label.addEventListener('dragover', allowDrop);
+    label.addEventListener('drop', drop);
+
     if (node.Name === currentSelection) {
         label.classList.add('selected-label')
     }
 
     li.appendChild(label)
 
-    // if a folder, recursively build its subtree
     if (node.Children.length > 0) {
         const childUl = document.createElement('ul')
         childUl.classList.add('nested')
@@ -343,12 +339,12 @@ function makeNodeElement(node: any): HTMLLIElement {
         li.appendChild(childUl)
     }
 
-    // LEFT-CLICK: toggle open & select/zoom
     label.addEventListener('click', ev => {
         ev.stopPropagation()
         if (node.Children.length > 0) {
             li.classList.toggle('open')
         }
+
         const scene = getScene()
         scene.selectLayer(node.Name)
         scene.zoomToLayer(node.Name)
@@ -394,23 +390,29 @@ function startDrag(event: DragEvent) {
 
 function drop(event: DragEvent) {
     event.preventDefault();
-    console.log("[drop] onto", (event.currentTarget as HTMLElement)?.dataset.name);
+
     const draggedName = draggedElement?.dataset.name;
     const dropTarget = event.currentTarget as HTMLElement;
     const targetName = dropTarget.dataset.name;
 
+    if (targetName === 'ROOT_DROP_ZONE') {
+        dropToRoot(draggedName);
+        return;
+    }
+
     if (!draggedName || !targetName || draggedName === targetName) return;
+
+    console.log("[drop] Moving", draggedName, "into", targetName);
 
     const scene = getScene() as any;
     const sourceNode = findNode(draggedName, scene.layerTree.Root);
     const targetNode = findNode(targetName, scene.layerTree.Root);
 
-    // Prevent moving into descendant
     if (isDescendant(sourceNode, targetNode)) {
         console.warn("Can't move into own descendant");
         return;
     }
-    
+
     scene.layerTree.move(draggedName, targetName);
     buildLayerTree();
 }
@@ -423,6 +425,19 @@ function isDescendant(parent: any, possibleChild: any): boolean {
         }
     }
     return false;
+} 
+
+// NEW: Handle drop to root level
+function dropToRoot(draggedName: string | undefined) {
+    if (!draggedName) return;
+
+    const scene = getScene() as any;
+
+    // Remove from existing parent
+    scene.layerTree.moveToRoot(draggedName);
+
+    console.log("[dropToRoot] Moved", draggedName, "to root");
+    buildLayerTree();
 }
 
 // Build the entire tree UI
@@ -438,6 +453,9 @@ function buildLayerTree() {
     homeLi.classList.add('file');
     homeLabel.classList.add('file-label');
     homeLabel.textContent = 'Home';
+    homeLabel.dataset.name = 'ROOT_DROP_ZONE';
+    homeLabel.addEventListener('dragover', allowDrop);
+    homeLabel.addEventListener('drop', drop);
     // highlight “Home” when no layer is selected
     if (currentSelection === null) {
         homeLabel.classList.add('selected-label');
@@ -457,11 +475,13 @@ function buildLayerTree() {
     root.Children.forEach((child: any) => {
         ul.appendChild(makeNodeElement(child))
     })
+
     treeContainer.appendChild(ul)
     if (highlightMode) updateHighlights()
 }
 // Rebuild on layer changes or selection
 window.addEventListener('layerCreated', () => {
+    console.log("called upon buildLayerTree()");
     buildLayerTree();
     if (highlightMode) updateHighlights();
 });
