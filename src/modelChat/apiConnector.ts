@@ -32,7 +32,7 @@ const tilestuff = await fetch('../phaserAssets/Assets/TileDatabase.json')
       '    *   If the user *only* provides context for a selection box (e.g., "select area [5,5] to [10,10]") but doesn\'t explicitly ask you to *do* something with/within it, **do not proactively call tools on that selection.** Acknowledge the selection and await a further command or instruction related to that selection.\n' +
       '\n' +
       '4.  **Tile Data & Placement Rules:**\n' +
-      '    *   **Available Tiles:** The entire list of tiles and their ID numbers is: `${JSON.stringify(tilestuff)}`\n' +
+      '    *   **Available Tiles:** The entire list of tiles and their ID numbers is: \n' + JSON.stringify(tilestuff) +
       '    *   **Placement Within Selection:** When placing objects (e.g., houses, trees), ensure they fit *entirely* within the specified or current selection boundaries. This includes their full width and height. No part of an object should extend beyond the selection.\n' +
       '\n' +
       '5.  **Interaction Style:**\n' +
@@ -102,11 +102,28 @@ export async function getChatResponse(chatMessageHistory: BaseMessage[]): Promis
 
     // Iterate through all tool calls
     for (const toolCall of response.tool_calls) {
-      const selectedTool = toolsByName[toolCall.name];
-      const result = await selectedTool.invoke(toolCall.args);
+      try {
+        const selectedTool = toolsByName[toolCall.name];
+        const result = await selectedTool.invoke(toolCall.args);
 
-      console.log(`Tool called ${toolCall.name} with result: ${result}`);
-      chatMessageHistory.push( new ToolMessage({ name: toolCall.name, content: result, tool_call_id: toolCall.id }) );
+        console.log(`Tool called ${toolCall.name} with result: ${result}`);
+        chatMessageHistory.push(new ToolMessage({
+          name: toolCall.name,
+          content: result,
+          tool_call_id: toolCall.id
+        }));
+      } catch (toolError) {
+        console.error(`Tool ${toolCall.name} failed:`, toolError);
+        // Add error message to chat history
+        const errorMessage = `Error: Tool '${toolCall.name}' failed with args: ${JSON.stringify(toolCall.args)}. 
+        Error details: ${toolError}. Please try again with different parameters.`;
+
+        chatMessageHistory.push(new ToolMessage({
+          name: toolCall.name,
+          content: errorMessage,
+          tool_call_id: toolCall.id
+        }));
+      }
     }
 
     // If a tool is called then ask the LLM to comment on it
@@ -115,10 +132,9 @@ export async function getChatResponse(chatMessageHistory: BaseMessage[]): Promis
     }
     return response.content ?? "Error communicating with model :(";
   }
-    catch (error) {
-        console.error("Error in LLM call: ", error);
-        return "Error communicating with model :(";
+  catch (error) {
+    console.error("Error in LLM call: ", error);
+    return "Error communicating with model :(";
   }
-  fet
 }
 

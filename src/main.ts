@@ -69,25 +69,12 @@ document.getElementById('all-selection')?.addEventListener('click', () => {
 //Clear selected tiles button
 document.getElementById('clear-selected-tiles')?.addEventListener('click', () => {
     const scene = getScene();
-    if (scene) {
-        var startX = 0;
-        var startY = 0;
-        var width = scene.CANVAS_WIDTH;
-        var height = scene.CANVAS_HEIGHT;
-        if(scene.selectionStart && scene.selectionEnd)
-        {
-            startX = Math.min(scene.selectionStart.x, scene.selectionEnd.x);
-            startY = Math.min(scene.selectionStart.y, scene.selectionEnd.y);
-            width = Math.abs(scene.selectionEnd.x - scene.selectionStart.x);
-            height = Math.abs(scene.selectionEnd.y - scene.selectionStart.y);
-        }
-        
-        // Use the clear generator from your generators object
+    if (scene && scene.getSelection()) {
         generators.clear.toolCall.invoke({
-            x: startX,
-            y: startY,
-            width: width,
-            height: height
+            x: Math.min(scene.selectionStart.x, scene.selectionEnd.x),
+            y: Math.min(scene.selectionStart.y, scene.selectionEnd.y),
+            width: scene.getSelection().width,
+            height: scene.getSelection().height
         });
     }
 });
