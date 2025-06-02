@@ -114,7 +114,7 @@ export class TinyTownScene extends Phaser.Scene {
     private highlightBox!: Phaser.GameObjects.Graphics;
     public selectedTileId: number | null = null;
 
-    public isPlacingMode: boolean = true; // true = placing mode, false = selection mode
+    public isPlacingMode: boolean = false; // true = placing mode, false = selection mode
 
     // selection box properties
     private selectionBox!: Phaser.GameObjects.Graphics;
@@ -224,6 +224,7 @@ export class TinyTownScene extends Phaser.Scene {
         
         // this.input.on('pointerdown', this.startSelection, this);
         this.input.on('pointermove', this.updateSelection, this);
+        this.input.on('pointerupoutside', this.endSelection, this);
         this.input.on('pointerup', this.endSelection, this);
 
         //Feature generator demo -- Erase if you don't need this
@@ -904,20 +905,24 @@ export class TinyTownScene extends Phaser.Scene {
 
         // Only highlight if within map bounds
         if (x >= 0 && x < this.CANVAS_WIDTH && y >= 0 && y < this.CANVAS_HEIGHT) {
-            this.drawHighlightBox(x, y);
+            if(this.isPlacingMode){
+                this.drawHighlightBox(x, y,0xFFFF00);// Yellow outline
+            }else{
+                this.drawHighlightBox(x, y,0xFF0000);// Red outline
+            }
         } else {
             // Clear highlight if out of bounds
             this.highlightBox.clear();
         }
     }
 
-    drawHighlightBox(x: number, y: number): void {
+    drawHighlightBox(x: number, y: number, color:number): void {
         // Clear any previous highlights
         this.highlightBox.clear();
 
         // Set the style for the highlight (e.g., semi-transparent yellow)
-        this.highlightBox.fillStyle(0xFFFF00, 0.5);  // Yellow with some transparency
-        this.highlightBox.lineStyle(2, 0xFFFF00, 1);  // Yellow outline
+        this.highlightBox.fillStyle(color, 0.5);  
+        this.highlightBox.lineStyle(2, color, 1);
 
         // Draw a rectangle around the hovered tile
         this.highlightBox.strokeRect(
