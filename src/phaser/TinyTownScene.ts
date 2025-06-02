@@ -83,6 +83,12 @@ export class TinyTownScene extends Phaser.Scene {
     private highlightBorders: Phaser.GameObjects.Graphics[] = []; 
     private highlightLabels: Phaser.GameObjects.Text[] = [];
 
+    // the currently active layer bounds, or null if none
+    private activeLayerBounds: { x: number; y: number; width: number; height: number } | null = null;
+
+    // graphics object we’ll use for the outside mask
+    private overlayMask!: Phaser.GameObjects.Graphics;
+
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
     public readonly CANVAS_HEIGHT = 25; // ^^^
@@ -733,6 +739,98 @@ export class TinyTownScene extends Phaser.Scene {
         }
         return TILE_PRIORITY.GRASS; // 0
 
+    }
+
+    public renameLayer(oldName: string, newName: string) {
+        const info = this.namedLayers.get(oldName);
+        if (!info) {
+            console.warn(`Layer "${oldName}" not found.`);
+            return;
+        }
+        this.namedLayers.delete(oldName);
+        info.layer.name = newName;
+        this.namedLayers.set(newName, info);
+
+        this.layerTree.rename(oldName, newName);
+
+        window.dispatchEvent(new CustomEvent('layerRenamed', {
+            detail: { oldName, newName }
+        }));
+    }
+
+    public deleteLayerOnly(name: string) {
+        const node = this.layerTree.getNode(name);
+        if (!node) return;
+        for (const child of [...node.Children]) {
+        this.deleteLayerOnly(child.Name);
+        }
+
+        this.namedLayers.delete(name);
+
+        this.layerTree.deleteNode(name);
+
+        window.dispatchEvent(new CustomEvent('layerDeleted', { detail: name }));
+    }
+
+    // Recursively remove a layer and all its children. 
+    public deleteLayer(name: string) {
+        const node = this.layerTree.getNode(name);
+        if (!node) {
+            console.warn(`Cannot delete layer "${name}", not found.`);
+            return;
+        }
+
+        for (const child of [...node.Children]) {
+            this.deleteLayer(child.Name);
+        }
+
+        const info = this.namedLayers.get(name);
+        if (info) {
+            const { x, y, width, height } = info.bounds;
+            const tiles = info.layer.getTilesWithin(x, y, width, height);
+            for (const tile of tiles) {
+                info.layer.removeTileAt(tile.x, tile.y);
+            }
+            info.layer.destroy(true);
+            this.namedLayers.delete(name);
+        }
+
+        this.layerTree.deleteNode(name);
+
+        window.dispatchEvent(
+            new CustomEvent('layerDeleted', { detail: name })
+        );
+    }
+
+    public setActiveLayer(name: string | null) {
+        if (name) {
+            const info = this.namedLayers.get(name);
+            this.activeLayerBounds = info ? { ...info.bounds } : null;
+        } else {
+            this.activeLayerBounds = null;
+        }
+        this.drawOverlayMask();
+    }
+
+    private drawOverlayMask() {
+        this.overlayMask.clear();
+        if (!this.activeLayerBounds) return;
+
+        const tw = 16 * this.SCALE;
+        const th = 16 * this.SCALE;
+        const { x, y, width, height } = this.activeLayerBounds;
+        const fullW = this.CANVAS_WIDTH * tw;
+        const fullH = this.CANVAS_HEIGHT * th;
+
+        this.overlayMask.fillStyle(0x000000, 0.5);
+        // top
+        this.overlayMask.fillRect(0, 0, fullW, y * th);
+        // bottom
+        this.overlayMask.fillRect(0, (y+height)*th, fullW, fullH - (y+height)*th);
+        // left
+        this.overlayMask.fillRect(0, y * th, x * tw, height * th);
+        // right
+        this.overlayMask.fillRect((x+width)*tw, y * th, fullW - (x+width)*tw, height * th);
     }
 
     putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false){
