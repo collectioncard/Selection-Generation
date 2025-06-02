@@ -23,14 +23,14 @@ export class boxClear implements FeatureGenerator {
       return `cleared at: ${[x,y]} with width: ${width} and height: ${height}`;
     },
     {
-      name: "clear",
+      name: "ClearBox",
       schema: z.object({
         x: z.number(),
         y: z.number(),
         width: z.number(),
         height: z.number(),
       }),
-      description: "clears a box area of the map at x,y with width and height",
+      description: "clears a rectangular area of the map defined by its top-left corner local coordinates (x,y), width, and height, clearing all cells and deleting their contents",
     }
   );
 
@@ -43,17 +43,18 @@ export class boxClear implements FeatureGenerator {
     _args[3] = Math.min(_args[3], mapSection.height );
       
     
-    console.log(grid)
-    for(let i = 0; i < _args[3]; i++){
-      for(let j = 0; j < _args[2]; j++){
+    //console.log(grid)
+    for(let i = _args[1]; i < _args[1] + _args[3]; i++){
+      for(let j = _args[0]; j < _args[0] + _args[2]; j++){
           grid[i][j] = -2;
         }
       }
-    console.log("cleared grid: ", grid);
+    //console.log("cleared grid: ", grid);
+    let feedback = "cleared " + _args[0] + ", " + _args[1] + " in local space with width " + _args[2] + " and height " + _args[3]
 
     return {
       name: 'ClearBox',
-      description: 'clears a box at the specified location',
+      description: feedback,
       grid: grid,
       points_of_interest: new Map(),
     };
