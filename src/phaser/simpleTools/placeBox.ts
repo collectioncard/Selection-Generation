@@ -39,18 +39,34 @@ export class boxPlacer implements FeatureGenerator {
   /** args correlate to [x, y, width, height, tileID, filled] */
   generate(mapSection: generatorInput, _args?: any): completedSection {
     let grid: number[][] = mapSection.grid;
-
-    const tileID = _args[4]; // get the tile id
-    for(let i = 0; i < _args[3]; i++){
-      for(let j = 0; j < _args[2]; j++){
-        if(_args[5]){
-          grid[_args[1] + i][_args[0] + j] = Number(tileID);
-        } else if (i == 0 || i == _args[3]-1 || j == 0 || j == _args[2]-1){
-          grid[_args[1] + i][_args[0] + j] = Number(tileID);
+  
+    if (!_args || _args.length < 6) {
+      throw new Error("Invalid arguments passed to generate method.");
+    }
+  
+    const [x, y, width, height, tileID, filled] = _args;
+  
+    if (typeof tileID !== "string" || typeof x !== "number" || typeof y !== "number" || 
+        typeof width !== "number" || typeof height !== "number" || 
+        (filled !== undefined && typeof filled !== "boolean")) {
+      throw new Error("Invalid argument types passed to generate method.");
+    }
+  
+    for (let i = 0; i < height; i++) {
+      for (let j = 0; j < width; j++) {
+        const gridX = x + j;
+        const gridY = y + i;
+  
+        if (gridY >= 0 && gridY < grid.length && gridX >= 0 && gridX < grid[gridY].length) {
+          if (filled) {
+            grid[gridY][gridX] = Number(tileID);
+          } else if (i === 0 || i === height - 1 || j === 0 || j === width - 1) {
+            grid[gridY][gridX] = Number(tileID);
+          }
         }
       }
     }
-
+  
     return {
       name: 'PlaceBox',
       description: 'places a box at the specified location',
