@@ -70,9 +70,10 @@ document.getElementById('all-selection')?.addEventListener('click', () => {
 document.getElementById('clear-selected-tiles')?.addEventListener('click', () => {
     const scene = getScene();
     if (scene && scene.getSelection()) {
+        // args of offset are in local space.
         generators.clear.toolCall.invoke({
-            x: Math.min(scene.selectionStart.x, scene.selectionEnd.x),
-            y: Math.min(scene.selectionStart.y, scene.selectionEnd.y),
+            x: 0,
+            y: 0,
             width: scene.getSelection().width,
             height: scene.getSelection().height
         });
