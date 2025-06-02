@@ -236,6 +236,11 @@ export class TinyTownScene extends Phaser.Scene {
 
         // cursor change outside active layer
         this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+            if (this.isPlacingMode) {
+                this.input.setDefaultCursor('default');
+                return;
+            }
+
             const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
             const tx = Math.floor(worldPoint.x / (16 * this.SCALE));
             const ty = Math.floor(worldPoint.y / (16 * this.SCALE));
@@ -243,10 +248,10 @@ export class TinyTownScene extends Phaser.Scene {
             if (this.activeLayerBounds) {
                 const b = this.activeLayerBounds;
                 const ok =
-                tx >= b.x &&
-                tx < b.x + b.width &&
-                ty >= b.y &&
-                ty < b.y + b.height;
+                    tx >= b.x &&
+                    tx < b.x + b.width &&
+                    ty >= b.y &&
+                    ty < b.y + b.height;
                 this.input.setDefaultCursor(ok ? 'crosshair' : 'not-allowed');
             } else {
                 this.input.setDefaultCursor('crosshair');

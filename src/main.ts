@@ -149,15 +149,15 @@ function updateHighlights() {
     }
 }
 
-const deleteModal       = document.getElementById('delete-modal')      as HTMLDivElement;
-const modalLayerName    = document.getElementById('modal-layer-name') as HTMLSpanElement;
-const btnDeleteOnly     = document.getElementById('btn-delete-only')     as HTMLButtonElement;
-const btnDeleteWith     = document.getElementById('btn-delete-with-assets') as HTMLButtonElement;
-const btnDeleteCancel   = document.getElementById('btn-delete-cancel')   as HTMLButtonElement;
+const deleteModal = document.getElementById('delete-modal') as HTMLDivElement;
+const modalLayerName = document.getElementById('modal-layer-name') as HTMLSpanElement;
+const btnDeleteOnly = document.getElementById('btn-delete-only') as HTMLButtonElement;
+const btnDeleteWith = document.getElementById('btn-delete-with-assets') as HTMLButtonElement;
+const btnDeleteCancel = document.getElementById('btn-delete-cancel') as HTMLButtonElement;
 
 const ctxMenu   = document.getElementById('layer-context-menu') as HTMLDivElement
-const ctxRename = document.getElementById('ctx-rename')        as HTMLLIElement
-const ctxDelete = document.getElementById('ctx-delete')        as HTMLLIElement
+const ctxRename = document.getElementById('ctx-rename') as HTMLLIElement
+const ctxDelete = document.getElementById('ctx-delete') as HTMLLIElement
 let contextTarget: string | null = null
 
 // hide menu on outside click
@@ -427,8 +427,6 @@ window.addEventListener('layerDeleted', (e: Event) => {
     buildLayerTree();
     if (highlightMode) updateHighlights();
 });
-
-buildLayerTree();
 
 function getRandEmoji(): string {
     let emoji = [':)', ':(', '>:(', ':D', '>:D', ':^D', ':(', ':D', 'O_O', ':P', '-_-', 'O_-', 'O_o', '𓆉', 'ジ', '⊂(◉‿◉)つ', '	(｡◕‿‿◕｡)', '(⌐■_■)', '<|°_°|>', '<|^.^|>', ':P', ':>', ':C', ':}', ':/', 'ʕ ● ᴥ ●ʔ','(˶ᵔ ᵕ ᵔ˶)'];
