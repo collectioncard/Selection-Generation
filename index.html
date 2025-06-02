@@ -11,7 +11,7 @@
     <div id ="sidebar">
       <button id="get-Coords">Get Selection</button>
       <button id="toggle-highlights">Highlights</button>
-      <button id="reset-view">🔄 Reset View</button>
+      <button>b3</button>
       <button id="toggle-tree">☰ Layers</button>
       <button>b4</button>
       <div id="selection-controls">
@@ -194,6 +194,23 @@
         
       <!-- </div> -->
     </div>
+  <div id="layer-context-menu">
+    <ul>
+      <li id="ctx-rename">✏️ Rename Layer</li>
+      <li id="ctx-delete">🗑️ Delete Layer</li>
+    </ul>
+  </div>
+  <div id="delete-modal" class="modal hidden">
+    <div class="modal-content">
+      <p>How would you like to delete “<span id="modal-layer-name"></span>”?</p>
+      <div class="modal-buttons">
+        <button id="btn-delete-only">Remove Layer Only</button>
+        <button id="btn-delete-with-assets">Remove Layer & Assets</button>
+        <button id="btn-delete-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <div id="map"></div>
   <div id="llm-chat">
     <div>
       <ul id="chat-history"></ul>
