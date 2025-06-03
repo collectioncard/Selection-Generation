@@ -15,6 +15,8 @@ import { boxClear } from './phaser/simpleTools/clear.ts';
 import { NameLayerTool } from './phaser/simpleTools/layerTools.ts';
 // import { MoveLayerTool } from './phaser/simpleTools/layerTools.ts';
 import { SelectLayerTool } from './phaser/simpleTools/layerTools.ts';
+import { RenameLayerTool } from './phaser/simpleTools/layerTools.ts';
+import { DeleteLayerTool } from './phaser/simpleTools/layerTools.ts';
 
 let gameInstance: Phaser.Game | null = null;
 
@@ -48,6 +50,8 @@ const generators = {
     name_layer: new NameLayerTool(getScene),
     // move_layer: new MoveLayerTool(getScene),
     select_layer: new SelectLayerTool(getScene),
+    rename_layer: new RenameLayerTool(getScene),
+    delete_layer: new DeleteLayerTool(getScene),
 }
 
 let draggedElement: HTMLElement | null = null;
@@ -72,9 +76,10 @@ document.getElementById('all-selection')?.addEventListener('click', () => {
 document.getElementById('clear-selected-tiles')?.addEventListener('click', () => {
     const scene = getScene();
     if (scene && scene.getSelection()) {
+        // args of offset are in local space.
         generators.clear.toolCall.invoke({
-            x: Math.min(scene.selectionStart.x, scene.selectionEnd.x),
-            y: Math.min(scene.selectionStart.y, scene.selectionEnd.y),
+            x: 0,
+            y: 0,
             width: scene.getSelection().width,
             height: scene.getSelection().height
         });
@@ -124,28 +129,147 @@ function updateHighlights() {
     let namesToHighlight: string[];
 
     if (currentSelection) {
-    // find the node for the selected layer
-    const node = findNode(currentSelection, scene.layerTree.Root);
-    namesToHighlight = node?.Children.map((c: any) => c.Name) || [];
+        const node = findNode(currentSelection, scene.layerTree.Root);
+        const kids = node?.Children || [];
+
+        if (kids.length > 0) {
+            namesToHighlight = kids.map((c: any) => c.Name);
+        } else {
+            namesToHighlight = [];
+        }
     } else {
-    // no selection → highlight top-level layers
-    namesToHighlight = scene.layerTree.Root.Children.map((c: any) => c.Name);
+        namesToHighlight = scene.layerTree.Root.Children.map((c: any) => c.Name);
     }
 
-    scene.drawLayerHighlights(namesToHighlight);
+    scene.clearLayerHighlights();
+
+    if (namesToHighlight.length > 0) {
+        scene.drawLayerHighlights(namesToHighlight);
+    }
+
+    if (currentSelection) {
+        scene.drawSingleHighlight(currentSelection, 0xff8800, 0.8);
+    }
 }
 
-document.getElementById('reset-view')?.addEventListener('click', () => {
-    const s = getScene();
-    s.resetView();
-    s.clearSelection(); 
-    currentSelection = null;
-    buildLayerTree();
-    if (highlightMode) {
-        updateHighlights();
-    } else {
-        s.clearLayerHighlights();
+const deleteModal = document.getElementById('delete-modal') as HTMLDivElement;
+const modalLayerName = document.getElementById('modal-layer-name') as HTMLSpanElement;
+const btnDeleteOnly = document.getElementById('btn-delete-only') as HTMLButtonElement;
+const btnDeleteWith = document.getElementById('btn-delete-with-assets') as HTMLButtonElement;
+const btnDeleteCancel = document.getElementById('btn-delete-cancel') as HTMLButtonElement;
+
+const ctxMenu   = document.getElementById('layer-context-menu') as HTMLDivElement
+const ctxRename = document.getElementById('ctx-rename') as HTMLLIElement
+const ctxDelete = document.getElementById('ctx-delete') as HTMLLIElement
+let contextTarget: string | null = null
+
+// hide menu on outside click
+document.addEventListener('click', () => {
+    ctxMenu.style.display = 'none'
+})
+
+ctxRename.addEventListener('click', () => {
+    if (!contextTarget) return
+
+    const newName = prompt(`Rename "${contextTarget}" to:`)?.trim()
+    if (!newName) {
+        ctxMenu.style.display = 'none'
+        return
     }
+
+    const scene = getScene()
+    scene.renameLayer(contextTarget, newName)
+
+    currentSelection = newName
+
+    scene.selectLayer(newName)
+    scene.zoomToLayer(newName)
+    scene.setActiveLayer(newName)
+    scene.clearSelection()
+
+    buildLayerTree()
+
+    if (highlightMode) updateHighlights()
+
+    ctxMenu.style.display = 'none'
+})
+
+// Handle delete from context menu
+ctxDelete.addEventListener('click', () => {
+    if (!contextTarget) return
+    modalLayerName.textContent = contextTarget;
+    deleteModal.classList.remove('hidden');
+    ctxMenu.style.display = 'none'
+})
+
+function findParent(childName: string, node: any): any | null {
+  for (const c of node.Children) {
+    if (c.Name === childName) return node
+    const deeper = findParent(childName, c)
+    if (deeper) return deeper
+  }
+  return null
+}
+
+function isRoot(node: any, scene: TinyTownScene) {
+  return node === (scene as any).layerTree.Root;
+}
+
+btnDeleteOnly.addEventListener('click', () => {
+    const scene = getScene() as any
+    const root = scene.layerTree.Root
+    const delName = contextTarget!
+    const parentNode = findParent(delName, root)
+
+    scene.deleteLayerOnly(delName)
+
+    // restore selection to parent (or home)
+    if (parentNode && !isRoot(parentNode, scene)) {
+        const parentName = parentNode.Name
+        currentSelection = parentName
+        scene.zoomToLayer(parentName)
+        scene.setActiveLayer(parentName)
+    } else {
+        currentSelection = null
+        scene.resetView()
+        scene.setActiveLayer(null)
+    }
+
+    buildLayerTree()
+    if (highlightMode) updateHighlights()
+    else scene.clearLayerHighlights()
+
+    deleteModal.classList.add('hidden')
+});
+
+btnDeleteWith.addEventListener('click', () => {
+    const scene = getScene() as any
+    const root = scene.layerTree.Root
+    const delName = contextTarget!
+    const parentNode = findParent(delName, root)
+
+    scene.deleteLayer(delName)
+
+    if (parentNode && !isRoot(parentNode, scene)) {
+        const parentName = parentNode.Name
+        currentSelection = parentName
+        scene.zoomToLayer(parentName)
+        scene.setActiveLayer(parentName)
+    } else {
+        currentSelection = null
+        scene.resetView()
+        scene.setActiveLayer(null)
+    }
+
+    buildLayerTree()
+    if (highlightMode) updateHighlights()
+    else scene.clearLayerHighlights()
+
+    deleteModal.classList.add('hidden')
+});
+
+btnDeleteCancel.addEventListener('click', () => {
+    deleteModal.classList.add('hidden');
 });
 
 const treeContainer = document.getElementById('layer-tree') as HTMLDivElement
@@ -153,8 +277,8 @@ treeContainer.classList.add('hidden');
 
 const toggleTreeBtn = document.getElementById('toggle-tree') as HTMLButtonElement;
 toggleTreeBtn.addEventListener('click', () => {
-  const isHidden = treeContainer.classList.toggle('hidden');
-  toggleTreeBtn.textContent = isHidden ? '☰ Layers' : '✖ Close';
+    const isHidden = treeContainer.classList.toggle('hidden');
+    toggleTreeBtn.textContent = isHidden ? '☰ Layers' : '✖ Close';
 });
 
 // Find a node by name in the tree
@@ -181,7 +305,8 @@ function makeNodeElement(node: any): HTMLLIElement {
         label = document.createElement('div')
         label.classList.add('file-label')
     }
-
+    
+    
     label.textContent = node.Name
     label.dataset.name = node.Name;
     label.setAttribute('draggable', 'true');
@@ -189,12 +314,15 @@ function makeNodeElement(node: any): HTMLLIElement {
     label.addEventListener('dragover', allowDrop);
     label.addEventListener('drop', drop);
 
+
+    // highlight if this is the current selection
     if (node.Name === currentSelection) {
         label.classList.add('selected-label')
     }
 
     li.appendChild(label)
 
+    // if a folder, recursively build its subtree
     if (node.Children.length > 0) {
         const childUl = document.createElement('ul')
         childUl.classList.add('nested')
@@ -204,12 +332,12 @@ function makeNodeElement(node: any): HTMLLIElement {
         li.appendChild(childUl)
     }
 
+    // LEFT-CLICK: toggle open & select/zoom
     label.addEventListener('click', ev => {
         ev.stopPropagation()
         if (node.Children.length > 0) {
             li.classList.toggle('open')
         }
-
         const scene = getScene()
         scene.selectLayer(node.Name)
         scene.zoomToLayer(node.Name)
@@ -228,6 +356,15 @@ function makeNodeElement(node: any): HTMLLIElement {
         window.dispatchEvent(
           new CustomEvent('layerSelected', { detail: node.Name })
         )
+    })
+
+    label.addEventListener('contextmenu', ev => {
+        ev.preventDefault()
+        ev.stopPropagation()
+        contextTarget = node.Name
+        ctxMenu.style.top  = ev.clientY + 'px'
+        ctxMenu.style.left = ev.clientX + 'px'
+        ctxMenu.style.display = 'block'
     })
 
     return li
@@ -347,6 +484,28 @@ window.addEventListener('layerSelected', () => {
 console.log("wow1")
 console.log("wow2")
 
+window.addEventListener('layerRenamed', (e: Event) => {
+    const { oldName, newName } = (e as CustomEvent).detail;
+    console.log(`Layer renamed: ${oldName} → ${newName}`);
+
+    currentSelection = newName;
+
+    buildLayerTree();
+
+    // if we’re in highlight mode, refresh highlights now that names changed
+    if (highlightMode) {
+        updateHighlights();
+    } else {
+        getScene().clearLayerHighlights();
+    }
+});
+
+window.addEventListener('layerDeleted', (e: Event) => {
+    console.log('layerDeleted:', (e as CustomEvent).detail);
+    buildLayerTree();
+    if (highlightMode) updateHighlights();
+});
+
 function getRandEmoji(): string {
     let emoji = [':)', ':(', '>:(', ':D', '>:D', ':^D', ':(', ':D', 'O_O', ':P', '-_-', 'O_-', 'O_o', '𓆉', 'ジ', '⊂(◉‿◉)つ', '	(｡◕‿‿◕｡)', '(⌐■_■)', '<|°_°|>', '<|^.^|>', ':P', ':>', ':C', ':}', ':/', 'ʕ ● ᴥ ●ʔ','(˶ᵔ ᵕ ᵔ˶)'];
     return emoji[Math.floor(Math.random() * emoji.length)];
@@ -378,5 +537,5 @@ if (modeButton) {
         modeButton!.textContent = `Mode: ${scene.isPlacingMode ? 'Place' : 'Select'}`;
     });
 }
-// buildLayerTree();
+
 buildLayerTree();

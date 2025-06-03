@@ -45,9 +45,9 @@ export class Tree {
         const parent = parentName ? this.findNode(parentName) : this.findNodeOfChild(layerName, this.Root)
         const node = this.findNode(layerName)
         if (parent && node) {
-            const idx = parent.Children.indexOf(node)
-            if (idx !== -1) {
-                parent.Children.splice(idx, 1)
+            const index = parent.Children.indexOf(node)
+            if (index !== -1) {
+                parent.Children.splice(index, 1)
                 return true
             }
         }
@@ -66,17 +66,16 @@ export class Tree {
     //      layerName: name of the layer you are searching for
     //      currentNode: starts at the root node of the tree
     // returns the coordinates (index 0), width (index 1), and height(index 2).
-    public find(layerName: string = "", currentNode: Node = this.Root): [[number[], number[]], number, number] | null  {
+    public find(layerName: string = "", currentNode: Node = this.Root): [[number[], number[]], number, number] | null {
         if (currentNode.Name === layerName) {
             return [
                 currentNode.Coordinates, 
                 currentNode.Width, 
                 currentNode.Height
             ];
-        } 
+        }
         for (const child of currentNode.Children) {
-            const found: [[number[], number[]], number, number] | null =
-            this.find(layerName, child);
+            const found: [[number[], number[]], number, number] | null = this.find(layerName, child);
             if (found) return found
         }
         return null
@@ -104,20 +103,27 @@ export class Tree {
     }
 
     private suitableParentFind(Coordinates: [number[], number[]], currentNode: Node = this.Root): Node | null {
-        const [[sx, sy], [ex, ey]] = Coordinates
-        const [[px, py], [qx, qy]] = currentNode.Coordinates
-        const within =
-            sx >= px && sy >= py &&
-            ex <= qx && ey <= qy
-
-        if (!within) return null
-
-        for (const child of currentNode.Children) {
-            const candidate = this.suitableParentFind(Coordinates, child)
-            if (candidate) return candidate
+        // Check if the new node can fit within currentNode
+        const isWithin =
+            Coordinates[0][0] >= currentNode.Coordinates[0][0] &&
+            Coordinates[0][1] >= currentNode.Coordinates[0][1] &&
+            Coordinates[1][0] <= currentNode.Coordinates[1][0] &&
+            Coordinates[1][1] <= currentNode.Coordinates[1][1];
+    
+        if (!isWithin) {
+            return null;
         }
-        return currentNode
-    }  
+
+        for (let childNode of currentNode.Children) {
+            const result = this.suitableParentFind(Coordinates, childNode);
+            if (result !== null) {
+                return result;
+            }
+        }
+
+        return currentNode;
+    }    
+
 
     printTree(currentNode: Node = this.Root) {
         let currentChildNameString = "";
@@ -146,7 +152,7 @@ export class Tree {
     public deleteNode(layerName: string): boolean {
         return this.delete(layerName);
     }
-
+    
     move(layerName: string, newParentName: string) {
         console.log("called move on " + newParentName + " to be the parent of " + layerName);
         let currentNode = this.findNode(layerName);
@@ -173,7 +179,7 @@ export class Tree {
 
         this.printTree();
     }
-
+    
     findParent(layerName: string = "", currentNode: Node = this.Root): Node | undefined {
         for (let childNode of currentNode.Children) {
             if (childNode.Name === layerName) {
@@ -185,3 +191,4 @@ export class Tree {
         return undefined;
     }
 }
+

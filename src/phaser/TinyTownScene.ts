@@ -89,6 +89,9 @@ export class TinyTownScene extends Phaser.Scene {
     // graphics object we’ll use for the outside mask
     private overlayMask!: Phaser.GameObjects.Graphics;
 
+    // Auto-naming layersAdd commentMore actions
+    private autoLayerCounter: number = 0;
+
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
     public readonly CANVAS_HEIGHT = 25; // ^^^
@@ -120,7 +123,7 @@ export class TinyTownScene extends Phaser.Scene {
     private highlightBox!: Phaser.GameObjects.Graphics;
     public selectedTileId: number | null = null;
 
-    public isPlacingMode: boolean = true; // true = placing mode, false = selection mode
+    public isPlacingMode: boolean = false; // true = placing mode, false = selection mode
 
     // selection box properties
     private selectionBox!: Phaser.GameObjects.Graphics;
@@ -226,11 +229,37 @@ export class TinyTownScene extends Phaser.Scene {
         
         // -------------> DO STUFF HERE <----------------
         this.selectionBox = this.add.graphics();
-        this.selectionBox.setDepth(100); 
+        this.selectionBox.setDepth(100);
+        this.overlayMask = this.add.graphics().setDepth(140);
         
         // this.input.on('pointerdown', this.startSelection, this);
         this.input.on('pointermove', this.updateSelection, this);
+        this.input.on('pointerupoutside', this.endSelection, this);
         this.input.on('pointerup', this.endSelection, this);
+
+        // cursor change outside active layer
+        this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+            if (this.isPlacingMode) {
+                this.input.setDefaultCursor('default');
+                return;
+            }
+
+            const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+            const tx = Math.floor(worldPoint.x / (16 * this.SCALE));
+            const ty = Math.floor(worldPoint.y / (16 * this.SCALE));
+
+            if (this.activeLayerBounds) {
+                const b = this.activeLayerBounds;
+                const ok =
+                    tx >= b.x &&
+                    tx < b.x + b.width &&
+                    ty >= b.y &&
+                    ty < b.y + b.height;
+                this.input.setDefaultCursor(ok ? 'crosshair' : 'not-allowed');
+            } else {
+                this.input.setDefaultCursor('crosshair');
+            }
+        });
 
         //Feature generator demo -- Erase if you don't need this
         // 1. Create a generatorInput obj with a 2D array the size of the feature you want. (min is 5x5 for most I think?)
@@ -291,13 +320,23 @@ export class TinyTownScene extends Phaser.Scene {
         const x: number = Math.floor(worldPoint.x / (16 * this.SCALE));
         const y: number = Math.floor(worldPoint.y / (16 * this.SCALE));
         
-        // Only start selection if within map bounds
-        if (x >= 0 && x < this.CANVAS_WIDTH && y >= 0 && y < this.CANVAS_HEIGHT) {
-            this.isSelecting = true;
-            this.selectionStart = new Phaser.Math.Vector2(x, y);
-            this.selectionEnd = new Phaser.Math.Vector2(x, y);
-            this.drawSelectionBox();
+        if (x < 0 || x >= this.CANVAS_WIDTH || y < 0 || y >= this.CANVAS_HEIGHT) {
+            return;
         }
+
+        // If we're zoomed into a specific layer, only allow starting inside it
+        if (this.activeLayerBounds) {
+            const b = this.activeLayerBounds;
+            if (x < b.x || x >= b.x + b.width || y < b.y || y >= b.y + b.height) {
+                return;
+            }
+        }
+
+        // Begin the selection
+        this.isSelecting = true;
+        this.selectionStart = new Phaser.Math.Vector2(x, y);
+        this.selectionEnd   = new Phaser.Math.Vector2(x, y);
+        this.drawSelectionBox();
     }
     setSelectionCoordinates(x: number, y: number, w: number, h: number): void {
         const endX = x + w - 1;
@@ -331,8 +370,14 @@ export class TinyTownScene extends Phaser.Scene {
         const y: number = Math.floor(worldPoint.y / (16 * this.SCALE));
         
         // Clamp to map bounds
-        const clampedX: number = Phaser.Math.Clamp(x, 0, this.CANVAS_WIDTH - 1);
-        const clampedY: number = Phaser.Math.Clamp(y, 0, this.CANVAS_HEIGHT - 1);
+        let clampedX: number = Phaser.Math.Clamp(x, 0, this.CANVAS_WIDTH - 1);
+        let clampedY: number = Phaser.Math.Clamp(y, 0, this.CANVAS_HEIGHT - 1);
+
+        if (this.activeLayerBounds) {
+            const b = this.activeLayerBounds;
+            clampedX = Phaser.Math.Clamp(x, b.x, b.x + b.width - 1);
+            clampedY = Phaser.Math.Clamp(y, b.y, b.y + b.height - 1);
+        }
         
         this.selectionEnd.set(clampedX, clampedY);
         this.drawSelectionBox();
@@ -488,33 +533,33 @@ export class TinyTownScene extends Phaser.Scene {
         
         // Populate coordinates and tile IDs
         for (let y = 0; y < height; y++) {
-          for (let x = 0; x < width; x++) {
-            const worldX = startX + x;
-            const worldY = startY + y;
-            
-            // Add to coordinates array 
-            this.selectedTiles.coordinates.push({ x: worldX, y: worldY });
-            
-            // Get tile IDs from both layers
-            let grassTileId = -1;
-            if (this.grassLayer) {
-              const tile = this.grassLayer.getTileAt(worldX, worldY);
-              grassTileId = tile ? tile.index : -1;
-              this.selectedTiles.tileGrid[y][x] = grassTileId;
-            }
-            
-            let featureTileId = -1;
-            if (this.featureLayer) {
-              const featureTile = this.featureLayer.getTileAt(worldX, worldY);
-              featureTileId = featureTile ? featureTile.index : -1;
-              this.selectedTiles.featureGrid[y][x] = featureTileId;
-            }
+            for (let x = 0; x < width; x++) {
+                const worldX = startX + x;
+                const worldY = startY + y;
+                
+                // Add to coordinates array 
+                this.selectedTiles.coordinates.push({ x: worldX, y: worldY });
+                
+                // Get tile IDs from both layers
+                let grassTileId = -1;
+                if (this.grassLayer) {
+                const tile = this.grassLayer.getTileAt(worldX, worldY);
+                grassTileId = tile ? tile.index : -1;
+                this.selectedTiles.tileGrid[y][x] = grassTileId;
+                }
+                
+                let featureTileId = -1;
+                if (this.featureLayer) {
+                const featureTile = this.featureLayer.getTileAt(worldX, worldY);
+                featureTileId = featureTile ? featureTile.index : -1;
+                this.selectedTiles.featureGrid[y][x] = featureTileId;
+                }
 
-            this.selectedTiles.combinedGrid[y][x] = (featureTileId !== -1) ? featureTileId : grassTileId;
+                this.selectedTiles.combinedGrid[y][x] = (featureTileId !== -1) ? featureTileId : grassTileId;
 
-            // create a set of unique tile ID to grab information from the tile dictionary
-            this.selectedTileSet.add((featureTileId !== -1) ? featureTileId : grassTileId);
-          }  
+                // create a set of unique tile ID to grab information from the tile dictionary
+                this.selectedTileSet.add((featureTileId !== -1) ? featureTileId : grassTileId);
+            }  
         }
     }
 
@@ -535,9 +580,9 @@ export class TinyTownScene extends Phaser.Scene {
 
     getSelection(): generatorInput {
         return {
-          grid: this.selectedTiles.featureGrid.map(row => [...row]),
-          width: this.selectedTiles.dimensions.width,
-          height: this.selectedTiles.dimensions.height,
+            grid: this.selectedTiles.featureGrid.map(row => [...row]),
+            width: this.selectedTiles.dimensions.width,
+            height: this.selectedTiles.dimensions.height,
         };
     }
 
@@ -586,6 +631,18 @@ export class TinyTownScene extends Phaser.Scene {
         });
     }
 
+    public drawSingleHighlight(layerName: string, color = 0xff8800, alpha = 0.8) {
+        const tw = 16 * this.SCALE
+        const th = 16 * this.SCALE
+        const info = this.namedLayers.get(layerName)
+        if (!info) return
+        const { x, y, width, height } = info.bounds
+        const g = this.add.graphics().setDepth(151)
+        g.lineStyle(4, color, alpha)
+        g.strokeRect(x * tw, y * th, width * tw, height * th)
+        this.highlightBorders.push(g)
+    }
+
     public nameSelection(name: string) {
         const sx = Math.min(this.selectionStart.x, this.selectionEnd.x);
         const sy = Math.min(this.selectionStart.y, this.selectionEnd.y);
@@ -615,8 +672,8 @@ export class TinyTownScene extends Phaser.Scene {
                 const ty  = sy + row;
                 const idx = this.featureLayer.getTileAt(tx, ty)?.index ?? -1;
                 if (idx >= 0) {
-                layer.putTileAt(idx, col, row);
-                this.featureLayer.removeTileAt(tx, ty);
+                    layer.putTileAt(idx, col, row);
+                    this.featureLayer.removeTileAt(tx, ty);
                 }
             }
         }
@@ -629,13 +686,17 @@ export class TinyTownScene extends Phaser.Scene {
 
         this.layerTree.add(name, [[sx, sy],[ex, ey]], w, h);
         this.layerTree.printTree();
+
+        window.dispatchEvent(new CustomEvent('layerCreated', {
+            detail: name
+        }));
     }
 
     public selectLayer(name: string) {
         const info = this.namedLayers.get(name);
         if (!info) {
-          console.warn(`No layer called "${name}".`);
-          return;
+            console.warn(`No layer called "${name}".`);
+            return;
         }
         const startX  = info.bounds.x;
         const startY  = info.bounds.y;
@@ -728,17 +789,16 @@ export class TinyTownScene extends Phaser.Scene {
         }
 
         if ( (tileIndex >= 3 && tileIndex <= 23) || (tileIndex >= 27 && tileIndex <= 35) ) {
-              return TILE_PRIORITY.FOREST; // 1
-         }
+            return TILE_PRIORITY.FOREST; // 1
+        }
 
         if ([57, 94, 95, 106, 107, 130, 131].includes(tileIndex)) {
-             return TILE_PRIORITY.DECOR; // 2
+            return TILE_PRIORITY.DECOR; // 2
         }
         if (tileIndex >= 0 && tileIndex <= 2) {
-             return TILE_PRIORITY.GRASS; // 0
+            return TILE_PRIORITY.GRASS; // 0
         }
         return TILE_PRIORITY.GRASS; // 0
-
     }
 
     public renameLayer(oldName: string, newName: string) {
@@ -812,6 +872,7 @@ export class TinyTownScene extends Phaser.Scene {
         this.drawOverlayMask();
     }
 
+    // Draw a dark translucent mask everywhere outside activeLayerBounds
     private drawOverlayMask() {
         this.overlayMask.clear();
         if (!this.activeLayerBounds) return;
@@ -841,14 +902,13 @@ export class TinyTownScene extends Phaser.Scene {
         const changed: { x: number; y: number }[] = [];
 
         if (!worldOverride) {
-             if (this.selectionStart && this.selectionEnd &&
-                 (this.selectionStart.x !== this.selectionEnd.x || this.selectionStart.y !== this.selectionEnd.y || this.isSelecting || this.selectedTiles.dimensions.width > 0)) {
-                 startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
-                 startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
-             } else {
-                 this.clearSelection();
-             }
-         }
+            if (this.selectionStart && this.selectionEnd &&(this.selectionStart.x !== this.selectionEnd.x || this.selectionStart.y !== this.selectionEnd.y || this.isSelecting || this.selectedTiles.dimensions.width > 0)) {
+                startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
+                startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
+            } else {
+                this.clearSelection();
+            }
+        }
 
         if (!acceptneg) {
             this.LastData = {
@@ -874,13 +934,13 @@ export class TinyTownScene extends Phaser.Scene {
 
         if (!this.featureLayer) {
             console.error("Feature layer is missing, cannot place tiles.");
+            // console.groupEnd();
+            return;
+        }
+        if (gridWidth === 0 || gridHeight === 0) {
             console.groupEnd();
             return;
         }
-         if (gridWidth === 0 || gridHeight === 0) {
-             console.groupEnd();
-             return;
-         }
 
         // Placement Logic 
         for (let yOffset = 0; yOffset < gridHeight; yOffset++) {
@@ -904,7 +964,7 @@ export class TinyTownScene extends Phaser.Scene {
                 }
 
                 // Clear
-                 if (newTileIndex === -2) {
+                if (newTileIndex === -2) {
                     this.featureLayer?.putTileAt(-1, placeX, placeY);
                     continue;
                 }
@@ -936,14 +996,54 @@ export class TinyTownScene extends Phaser.Scene {
                     }
                 } else {
                     if (currentTileIndex === -1) {
-                         this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
-                         changed.push({ x: placeX, y: placeY });
+                        this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
+                        changed.push({ x: placeX, y: placeY });
                     }
                 } 
             } 
         } 
 
         this.pruneBrokenTrees(changed);
+
+        // —— AUTO-LAYER CREATION ——
+        // Compute selection bounds
+        const ex = startX + gridWidth - 1;
+        const ey = startY + gridHeight - 1;
+        const w = gridWidth;
+        const h = gridHeight;
+        if (changed.length > 0) {
+            // Try to find an existing layer with identical bounds
+            let existingInfo: { layer: Phaser.Tilemaps.TilemapLayer; bounds: { x: number; y: number; width: number; height: number } } | undefined;
+            for (const info of this.namedLayers.values()) {
+            if (
+                info.bounds.x === startX &&
+                info.bounds.y === startY &&
+                info.bounds.width === w &&
+                info.bounds.height === h
+            ) {
+                existingInfo = info;
+                break;
+            }
+            }
+
+            if (existingInfo) {
+            // Move new tiles from featureLayer into the existing layer
+            changed.forEach(({ x, y }) => {
+                const relX = x - startX;
+                const relY = y - startY;
+                const idx = this.featureLayer.getTileAt(x, y)?.index ?? -1;
+                if (idx >= 0) {
+                existingInfo!.layer.putTileAt(idx, relX, relY);
+                this.featureLayer.removeTileAt(x, y);
+                }
+            });
+            } else {
+            // No existing layer: create a new auto-named layer
+            this.autoLayerCounter = (this.autoLayerCounter || 0) + 1;
+            const autoName = `Layer ${this.autoLayerCounter}`;
+            this.nameSelection(autoName);
+            }
+        }
         console.groupEnd();
     }
 
@@ -1002,20 +1102,24 @@ export class TinyTownScene extends Phaser.Scene {
 
         // Only highlight if within map bounds
         if (x >= 0 && x < this.CANVAS_WIDTH && y >= 0 && y < this.CANVAS_HEIGHT) {
-            this.drawHighlightBox(x, y);
+            if(this.isPlacingMode){
+                this.drawHighlightBox(x, y,0xFFFF00);// Yellow outline
+            }else{
+                this.drawHighlightBox(x, y,0xFF0000);// Red outline
+            }
         } else {
             // Clear highlight if out of bounds
             this.highlightBox.clear();
         }
     }
 
-    drawHighlightBox(x: number, y: number): void {
+    drawHighlightBox(x: number, y: number, color:number): void {
         // Clear any previous highlights
         this.highlightBox.clear();
 
         // Set the style for the highlight (e.g., semi-transparent yellow)
-        this.highlightBox.fillStyle(0xFFFF00, 0.5);  // Yellow with some transparency
-        this.highlightBox.lineStyle(2, 0xFFFF00, 1);  // Yellow outline
+        this.highlightBox.fillStyle(color, 0.5);  
+        this.highlightBox.lineStyle(2, color, 1);
 
         // Draw a rectangle around the hovered tile
         this.highlightBox.strokeRect(
