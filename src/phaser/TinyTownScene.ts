@@ -89,6 +89,9 @@ export class TinyTownScene extends Phaser.Scene {
     // graphics object we’ll use for the outside mask
     private overlayMask!: Phaser.GameObjects.Graphics;
 
+    // Auto-naming layersAdd commentMore actions
+    private autoLayerCounter: number = 0;
+
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
     public readonly CANVAS_HEIGHT = 25; // ^^^
@@ -669,8 +672,8 @@ export class TinyTownScene extends Phaser.Scene {
                 const ty  = sy + row;
                 const idx = this.featureLayer.getTileAt(tx, ty)?.index ?? -1;
                 if (idx >= 0) {
-                layer.putTileAt(idx, col, row);
-                this.featureLayer.removeTileAt(tx, ty);
+                    layer.putTileAt(idx, col, row);
+                    this.featureLayer.removeTileAt(tx, ty);
                 }
             }
         }
@@ -683,6 +686,10 @@ export class TinyTownScene extends Phaser.Scene {
 
         this.layerTree.add(name, [[sx, sy],[ex, ey]], w, h);
         this.layerTree.printTree();
+
+        window.dispatchEvent(new CustomEvent('layerCreated', {
+            detail: name
+        }));
     }
 
     public selectLayer(name: string) {
@@ -895,14 +902,13 @@ export class TinyTownScene extends Phaser.Scene {
         const changed: { x: number; y: number }[] = [];
 
         if (!worldOverride) {
-             if (this.selectionStart && this.selectionEnd &&
-                 (this.selectionStart.x !== this.selectionEnd.x || this.selectionStart.y !== this.selectionEnd.y || this.isSelecting || this.selectedTiles.dimensions.width > 0)) {
-                 startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
-                 startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
-             } else {
-                 this.clearSelection();
-             }
-         }
+            if (this.selectionStart && this.selectionEnd &&(this.selectionStart.x !== this.selectionEnd.x || this.selectionStart.y !== this.selectionEnd.y || this.isSelecting || this.selectedTiles.dimensions.width > 0)) {
+                startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
+                startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
+            } else {
+                this.clearSelection();
+            }
+        }
 
         if (!acceptneg) {
             this.LastData = {
@@ -928,13 +934,13 @@ export class TinyTownScene extends Phaser.Scene {
 
         if (!this.featureLayer) {
             console.error("Feature layer is missing, cannot place tiles.");
+            // console.groupEnd();
+            return;
+        }
+        if (gridWidth === 0 || gridHeight === 0) {
             console.groupEnd();
             return;
         }
-         if (gridWidth === 0 || gridHeight === 0) {
-             console.groupEnd();
-             return;
-         }
 
         // Placement Logic 
         for (let yOffset = 0; yOffset < gridHeight; yOffset++) {
@@ -958,7 +964,7 @@ export class TinyTownScene extends Phaser.Scene {
                 }
 
                 // Clear
-                 if (newTileIndex === -2) {
+                if (newTileIndex === -2) {
                     this.featureLayer?.putTileAt(-1, placeX, placeY);
                     continue;
                 }
@@ -990,14 +996,54 @@ export class TinyTownScene extends Phaser.Scene {
                     }
                 } else {
                     if (currentTileIndex === -1) {
-                         this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
-                         changed.push({ x: placeX, y: placeY });
+                        this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
+                        changed.push({ x: placeX, y: placeY });
                     }
                 } 
             } 
         } 
 
         this.pruneBrokenTrees(changed);
+
+        // —— AUTO-LAYER CREATION ——
+        // Compute selection bounds
+        const ex = startX + gridWidth - 1;
+        const ey = startY + gridHeight - 1;
+        const w = gridWidth;
+        const h = gridHeight;
+        if (changed.length > 0) {
+            // Try to find an existing layer with identical bounds
+            let existingInfo: { layer: Phaser.Tilemaps.TilemapLayer; bounds: { x: number; y: number; width: number; height: number } } | undefined;
+            for (const info of this.namedLayers.values()) {
+            if (
+                info.bounds.x === startX &&
+                info.bounds.y === startY &&
+                info.bounds.width === w &&
+                info.bounds.height === h
+            ) {
+                existingInfo = info;
+                break;
+            }
+            }
+
+            if (existingInfo) {
+            // Move new tiles from featureLayer into the existing layer
+            changed.forEach(({ x, y }) => {
+                const relX = x - startX;
+                const relY = y - startY;
+                const idx = this.featureLayer.getTileAt(x, y)?.index ?? -1;
+                if (idx >= 0) {
+                existingInfo!.layer.putTileAt(idx, relX, relY);
+                this.featureLayer.removeTileAt(x, y);
+                }
+            });
+            } else {
+            // No existing layer: create a new auto-named layer
+            this.autoLayerCounter = (this.autoLayerCounter || 0) + 1;
+            const autoName = `Layer ${this.autoLayerCounter}`;
+            this.nameSelection(autoName);
+            }
+        }
         console.groupEnd();
     }
 
