@@ -99,6 +99,7 @@ export class TinyTownScene extends Phaser.Scene {
 
     ////DEBUG / FEATURE FLAGS////
     private readonly allowOverwriting: boolean = true; // Allows LLM to overwrite placed tiles
+    private readonly AUTOLAYER: boolean = false;
     
     // Phaser map & tileset references
     private map!: Phaser.Tilemaps.Tilemap;
@@ -779,7 +780,7 @@ export class TinyTownScene extends Phaser.Scene {
     }
 
     getTilePriority(tileIndex: number): number {
-        if (tileIndex === -1 || tileIndex === -2) {
+        if (tileIndex === -1) {
             return TILE_PRIORITY.EMPTY; // -1
         }
         if ([44, 45, 46, 56, 58, 68, 69, 70].includes(tileIndex)) {
@@ -960,7 +961,7 @@ export class TinyTownScene extends Phaser.Scene {
                 // Clear
                 if (acceptneg && newTileIndex === -2) {
                     this.featureLayer?.putTileAt(-1, placeX, placeY);
-                    console.log("deleted a tile at", placeX, placeY)
+                    console.log("deleted a tile at", placeX, placeY);
                     changed.push({ x: placeX, y: placeY });
                     continue;
                 }
@@ -976,6 +977,7 @@ export class TinyTownScene extends Phaser.Scene {
                 if (this.allowOverwriting) {
                     const newPriority = this.getTilePriority(newTileIndex);
                     const currentPriority = this.getTilePriority(currentTileIndex);
+                    console.log("doing stuff new: ", newPriority, "cur", currentPriority)
 
                     // // Explicit Check for fence and house no longer needed
                     // if (newPriority === TILE_PRIORITY.FENCE && currentPriority === TILE_PRIORITY.HOUSE) {
@@ -986,21 +988,22 @@ export class TinyTownScene extends Phaser.Scene {
                     if (newPriority >= currentPriority) {
                          // console.log(`   Placing: New P${newPriority} >= Current P${currentPriority} at (${placeX}, ${placeY})`);
                         this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
+                        changed.push({ x: placeX, y: placeY });
                     } else {
                         // console.log(`   Skipping: New P${newPriority} < Current P${currentPriority} at (${placeX}, ${placeY})`);
                     }
                 } else {
                     if (currentTileIndex === -1) {
                         this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
+                        changed.push({ x: placeX, y: placeY });
                     }
                 } 
-                changed.push({ x: placeX, y: placeY });
             } 
         } 
         console.log(this.featureLayer.layer.data)
         this.pruneBrokenTrees(changed);
 
-        // —— AUTO-LAYER CREATION ——
+        if(this.AUTOLAYER){// —— AUTO-LAYER CREATION ——
         // Compute selection bounds
         const ex = startX + gridWidth - 1;
         const ey = startY + gridHeight - 1;
@@ -1037,7 +1040,7 @@ export class TinyTownScene extends Phaser.Scene {
             const autoName = `Layer ${this.autoLayerCounter}`;
             this.nameSelection(autoName);
             }
-        }
+        }}
         console.groupEnd();
     }
 
