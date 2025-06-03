@@ -912,23 +912,21 @@ export class TinyTownScene extends Phaser.Scene {
             }
         }
 
-        if (!acceptneg) {
-            this.LastData = {
-                name: 'Undo State',
-                description: 'Previous map feature state',
-                grid: [],
-                points_of_interest: new Map(),
-            };
-            const currentTiles = this.featureLayer?.getTilesWithin(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT) || [];
-            this.LastData.grid = Array(this.CANVAS_HEIGHT).fill(0).map(() => Array(this.CANVAS_WIDTH).fill(-1));
-            currentTiles.forEach(tile => {
-                if (tile.index !== -1) {
-                    if (tile.y >= 0 && tile.y < this.CANVAS_HEIGHT && tile.x >= 0 && tile.x < this.CANVAS_WIDTH) {
-                        this.LastData.grid[tile.y][tile.x] = tile.index;
-                    }
+        this.LastData = {
+            name: 'Undo State',
+            description: 'Previous map feature state',
+            grid: [],
+            points_of_interest: new Map(),
+        };
+        const currentTiles = this.featureLayer?.getTilesWithin(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT) || [];
+        this.LastData.grid = Array(this.CANVAS_HEIGHT).fill(0).map(() => Array(this.CANVAS_WIDTH).fill(-1));
+        currentTiles.forEach(tile => {
+            if (tile.index !== -1) {
+                if (tile.y >= 0 && tile.y < this.CANVAS_HEIGHT && tile.x >= 0 && tile.x < this.CANVAS_WIDTH) {
+                    this.LastData.grid[tile.y][tile.x] = tile.index;
                 }
-            });
-        }
+            }
+        });
 
         const gridToPlace = generatedData.grid;
         const gridHeight = gridToPlace.length;
@@ -959,15 +957,11 @@ export class TinyTownScene extends Phaser.Scene {
                      continue;
                  }
 
-                // Undo
-                if (acceptneg) {
-                    this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
-                    continue;
-                }
-
                 // Clear
-                if (newTileIndex === -2) {
+                if (acceptneg && newTileIndex === -2) {
                     this.featureLayer?.putTileAt(-1, placeX, placeY);
+                    console.log("deleted a tile at", placeX, placeY)
+                    changed.push({ x: placeX, y: placeY });
                     continue;
                 }
 
@@ -992,19 +986,18 @@ export class TinyTownScene extends Phaser.Scene {
                     if (newPriority >= currentPriority) {
                          // console.log(`   Placing: New P${newPriority} >= Current P${currentPriority} at (${placeX}, ${placeY})`);
                         this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
-                        changed.push({ x: placeX, y: placeY });
                     } else {
                         // console.log(`   Skipping: New P${newPriority} < Current P${currentPriority} at (${placeX}, ${placeY})`);
                     }
                 } else {
                     if (currentTileIndex === -1) {
                         this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
-                        changed.push({ x: placeX, y: placeY });
                     }
                 } 
+                changed.push({ x: placeX, y: placeY });
             } 
         } 
-
+        console.log(this.featureLayer.layer.data)
         this.pruneBrokenTrees(changed);
 
         // —— AUTO-LAYER CREATION ——
@@ -1034,11 +1027,10 @@ export class TinyTownScene extends Phaser.Scene {
                 const relX = x - startX;
                 const relY = y - startY;
                 const idx = this.featureLayer.getTileAt(x, y)?.index ?? -1;
-                if (idx >= 0) {
                 existingInfo!.layer.putTileAt(idx, relX, relY);
                 this.featureLayer.removeTileAt(x, y);
-                }
             });
+            console.log()
             } else {
             // No existing layer: create a new auto-named layer
             this.autoLayerCounter = (this.autoLayerCounter || 0) + 1;

@@ -19,7 +19,8 @@ export class boxClear implements FeatureGenerator {
         return "Tool Failed, no reference to scene."
       }
       let selection = scene.getSelection()
-      scene.putFeatureAtSelection(this.generate(selection, [x, y, width, height]));
+      console.log(selection)
+      scene.putFeatureAtSelection(this.generate(selection, [x, y, width, height]), false, true);
       return `cleared at: ${[x,y]} with width: ${width} and height: ${height}`;
     },
     {
@@ -43,13 +44,13 @@ export class boxClear implements FeatureGenerator {
     _args[3] = Math.min(_args[3], mapSection.height );
       
     
-    //console.log(grid)
+    console.log(grid)
     for(let i = _args[1]; i < _args[1] + _args[3]; i++){
       for(let j = _args[0]; j < _args[0] + _args[2]; j++){
           grid[i][j] = -2;
         }
       }
-    //console.log("cleared grid: ", grid);
+    console.log("cleared grid: ", grid);
     let feedback = "cleared " + _args[0] + ", " + _args[1] + " in local space with width " + _args[2] + " and height " + _args[3]
 
     return {
