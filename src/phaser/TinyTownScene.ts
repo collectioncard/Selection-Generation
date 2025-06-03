@@ -349,6 +349,7 @@ export class TinyTownScene extends Phaser.Scene {
 
 		this.paragraphDescription = this.wf.getDescriptionParagraph();
 		console.log(this.paragraphDescription);
+        this.wf.printWorldFacts()
 
         const startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
         const startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
@@ -376,7 +377,8 @@ export class TinyTownScene extends Phaser.Scene {
             if (this.paragraphDescription!=''){
                 selectionMessage =
                 `User has selected a rectangular region that is this size: ${selectionWidth}x${selectionHeight}. Here are the global coordinates for the selection box: [${startX}, ${startY}] to [${endX}, ${endY}].` +
-                `This is the description of the selection, this is only for context purposes and to help you understand what is selected: ${this.paragraphDescription}. ` +
+                `This is the description of the selection, this is only for context purposes and to help you understand what is selected: ${this.paragraphDescription}` +
+                `Doors are connection points / points of interest for you to connect paths with.` +
                 `Be sure to re-explain what is in the selection box. If there are objects in the selection, specify the characteristics of the object. ` +
                 `If no objects are inside the selection, then do not mention anything else.`;
             }else{

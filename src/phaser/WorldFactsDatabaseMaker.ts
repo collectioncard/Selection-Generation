@@ -147,7 +147,7 @@ export class WorldFactsDatabaseMaker {
     { x: 1, y: 0 }, // right
   ];
 
-  MIN_STRUCTURE_SIZE: number = 3; // in tiles
+  MIN_STRUCTURE_SIZE: number = 2; // in tiles
 
   mapData: number[][];
   mapWidth: number;
@@ -165,6 +165,7 @@ export class WorldFactsDatabaseMaker {
 
   getWorldFacts():void {
     // Populate
+    console.log(this.mapData)
     this.structures = [];
     for (const type of this.STRUCTURE_TYPES) {
       for (const [index, positionArray] of this.getStructures(type.tileIDs).entries()) {
@@ -208,7 +209,6 @@ export class WorldFactsDatabaseMaker {
       for (let x = 0; x < this.mapData[0].length; x++) {
         // Skip if empty or already visited tiles
         if (this.mapData[y][x] === 0 || visitedTiles[y][x]) continue;
-
         // Flood fill to find connected structure
         const structure = this.floodFill(x, y, visitedTiles, structureTiles);
 
@@ -252,9 +252,9 @@ export class WorldFactsDatabaseMaker {
 
       // Add neighbors to stack
       for (const dir of this.DIRECTIONS) {
-        for (let i = 1; i <= this.structRange; i++) {
-          stack.push({ x: x + dir.x * i, y: y + dir.y * i });
-        }
+        const nx = x + dir.x;
+        const ny = y + dir.y;
+        stack.push({ x: nx, y: ny });
       }
     }
 
@@ -286,7 +286,7 @@ export class WorldFactsDatabaseMaker {
   getDescriptionParagraph(): string {
     let par: string = "";
     let canvasHeight = this.mapHeight; // You need to define this based on your canvas
-  
+    
     for (let i = 0; i < this.structures.length; i++) {
       let struct = this.structures[i];
   
@@ -377,26 +377,39 @@ export class WorldFactsDatabaseMaker {
   }
 
   getStructureFeatures(type: StructureType, positions: { x: number; y: number }[]): string[] {
-    let features = type.features!;
-    let structFeaturesList: string[] = [];
+  let features = type.features!;
+  let structFeaturesList: string[] = [];
 
-    for (let featureType in features) {
-      let featureCount : number = 0;
-      for (let { x, y } of positions) {
-        if (features[featureType].includes(this.mapData[y][x])) {
-          featureCount++;
+  for (let featureType in features) {
+    let featureCount: number = 0;
+    let featureCoords: string[] = [];
+
+    for (let { x, y } of positions) {
+      if (features[featureType].includes(this.mapData[y][x])) {
+        featureCount++;
+        if (featureType === "door") {
+          featureCoords.push(`(${x}, ${y})`);
         }
-      }
-      if (featureCount > 0) {
-        if (featureCount > 1) {
-          featureType += "s";
-        }
-        structFeaturesList.push(`${featureCount} ${featureType}`);
       }
     }
 
-    return structFeaturesList;
+    if (featureCount > 0) {
+      let featureLabel = featureType;
+      if (featureCount > 1) {
+        featureLabel += "s";
+      }
+
+      let featureString = `${featureCount} ${featureLabel}`;
+      if (featureType === "door") {
+        featureString += ` at ${featureCoords.join(", ")}`;
+      }
+
+      structFeaturesList.push(featureString);
+    }
   }
+
+  return structFeaturesList;
+}
 
   getSubstructures(type: StructureType, positions: { x: number; y: number }[]): Substructure[] {
     let substructures = type.substructures!;
