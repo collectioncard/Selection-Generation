@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { sendSystemMessage } from '../modelChat/chatbox';
+import { chatHistory } from '../modelChat/chatbox';
 
 import {Preload} from './Preload';
 import {HouseGenerator} from "./featureGenerators/houseGenerator";
@@ -88,9 +89,6 @@ export class TinyTownScene extends Phaser.Scene {
 
     // graphics object we’ll use for the outside mask
     private overlayMask!: Phaser.GameObjects.Graphics;
-
-    // Auto-naming layersAdd commentMore actions
-    private autoLayerCounter: number = 0;
 
     private readonly SCALE = 1;
     public readonly CANVAS_WIDTH = 40;  //Size in tiles
@@ -912,7 +910,7 @@ export class TinyTownScene extends Phaser.Scene {
         this.overlayMask.fillRect((x+width)*tw, y * th, fullW - (x+width)*tw, height * th);
     }
 
-    putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false, undoing = false){
+    async putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false, undoing = false){
         //console.groupCollapsed(`Placing: ${generatedData.name} (Override: ${worldOverride}, Undo: ${acceptneg}, AllowOverwrite: ${this.allowOverwriting})`);
 
         let startX = 0;
@@ -1049,9 +1047,8 @@ export class TinyTownScene extends Phaser.Scene {
             });
             console.log()
             } else {
-                // No existing layer: create a new auto-named layer
-                this.autoLayerCounter = (this.autoLayerCounter || 0) + 1;
-                const autoName = `Layer ${this.autoLayerCounter}`;
+                // No existing layer: create a new auto-named layer with generated name
+                const autoName = await Tree.createLayerName(chatHistory, w, h);
                 this.nameSelection(autoName);
                 this.clearSelection();
             }
