@@ -976,7 +976,7 @@ export class TinyTownScene extends Phaser.Scene {
                 if (this.allowOverwriting) {
                     const newPriority = this.getTilePriority(newTileIndex);
                     const currentPriority = this.getTilePriority(currentTileIndex);
-                    console.log("doing stuff new: ", newPriority, "cur", currentPriority)
+                    //console.log("doing stuff new: ", newPriority, "cur", currentPriority)
 
                     // // Explicit Check for fence and house no longer needed
                     // if (newPriority === TILE_PRIORITY.FENCE && currentPriority === TILE_PRIORITY.HOUSE) {
