@@ -897,7 +897,7 @@ export class TinyTownScene extends Phaser.Scene {
         this.overlayMask.fillRect((x+width)*tw, y * th, fullW - (x+width)*tw, height * th);
     }
 
-    putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false){
+    putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false, undoing = false){
         //console.groupCollapsed(`Placing: ${generatedData.name} (Override: ${worldOverride}, Undo: ${acceptneg}, AllowOverwrite: ${this.allowOverwriting})`);
 
         let startX = 0;
@@ -928,7 +928,6 @@ export class TinyTownScene extends Phaser.Scene {
                 }
             }
         });
-
         const gridToPlace = generatedData.grid;
         const gridHeight = gridToPlace.length;
         const gridWidth = gridHeight > 0 ? (gridToPlace[0]?.length ?? 0) : 0;
@@ -967,7 +966,7 @@ export class TinyTownScene extends Phaser.Scene {
                 }
 
                 // Skip empty tiles
-                if (newTileIndex === -1) {
+                if (newTileIndex === -1 && !undoing) {
                     continue;
                 }
 
@@ -985,7 +984,7 @@ export class TinyTownScene extends Phaser.Scene {
                     // }
 
                     // console.log(`Check (${placeX}, ${placeY}): New P${newPriority} (ID ${newTileIndex}) vs Current P${currentPriority} (ID ${currentTileIndex})`);
-                    if (newPriority >= currentPriority) {
+                    if (newPriority >= currentPriority || undoing) {
                          // console.log(`   Placing: New P${newPriority} >= Current P${currentPriority} at (${placeX}, ${placeY})`);
                         this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
                         changed.push({ x: placeX, y: placeY });

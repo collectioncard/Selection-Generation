@@ -18,11 +18,12 @@ export class FullUndo implements FeatureGenerator {
         console.log("getSceneFailed")
         return "Tool Failed, no reference to scene."
       }
-      console.log("last data" + scene.LastData)
+      console.log("last data")
+      console.log(scene.LastData)
 
       // the way that the undo works is that it replaces the whole map with a save state
       // in effect it puts the whole previous map onto the map.
-      scene.putFeatureAtSelection(scene.LastData, true, true);
+      scene.putFeatureAtSelection(scene.LastData, false, true, true);
       return `undid last task`; // this is how the LLM knows that the last action was an undo.
     },
     {
