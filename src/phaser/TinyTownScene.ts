@@ -99,7 +99,7 @@ export class TinyTownScene extends Phaser.Scene {
 
     ////DEBUG / FEATURE FLAGS////
     private readonly allowOverwriting: boolean = true; // Allows LLM to overwrite placed tiles
-    private readonly AUTOLAYER: boolean = false;
+    private readonly AUTOLAYER: boolean = true;
     
     // Phaser map & tileset references
     private map!: Phaser.Tilemaps.Tilemap;
@@ -546,22 +546,37 @@ export class TinyTownScene extends Phaser.Scene {
                 // Get tile IDs from both layers
                 let grassTileId = -1;
                 if (this.grassLayer) {
-                const tile = this.grassLayer.getTileAt(worldX, worldY);
-                grassTileId = tile ? tile.index : -1;
-                this.selectedTiles.tileGrid[y][x] = grassTileId;
+                    const tile = this.grassLayer.getTileAt(worldX, worldY);
+                    grassTileId = tile ? tile.index : -1;
+                    this.selectedTiles.tileGrid[y][x] = grassTileId;
                 }
                 
                 let featureTileId = -1;
                 if (this.featureLayer) {
-                const featureTile = this.featureLayer.getTileAt(worldX, worldY);
-                featureTileId = featureTile ? featureTile.index : -1;
-                this.selectedTiles.featureGrid[y][x] = featureTileId;
+                    const featureTile = this.featureLayer.getTileAt(worldX, worldY);
+                    featureTileId = featureTile ? featureTile.index : -1;
+                    this.selectedTiles.featureGrid[y][x] = featureTileId;
                 }
 
-                this.selectedTiles.combinedGrid[y][x] = (featureTileId !== -1) ? featureTileId : grassTileId;
+                let namedTileId = -1;
+                for(const info of this.namedLayers.values()) {
+                    const b = info.bounds;
+                    if (worldX >= b.x && worldX < b.x + b.width &&
+                        worldY >= b.y && worldY < b.y + b.height) {
+                        const localX = worldX - b.x;
+                        const localY = worldY - b.y;
+                        const tile = info.layer.getTileAt(localX, localY);
+                        if(tile && tile.index >= 0) {
+                            namedTileId = tile.index;
+                        }
+                    }
+                }
 
-                // create a set of unique tile ID to grab information from the tile dictionary
-                this.selectedTileSet.add((featureTileId !== -1) ? featureTileId : grassTileId);
+                const finalIdx = (namedTileId !== -1) ? namedTileId : (featureTileId !== -1) ? featureTileId : grassTileId;
+                this.selectedTiles.combinedGrid[y][x] = finalIdx;
+                if(finalIdx !== -1) {
+                    this.selectedTileSet.add(finalIdx);
+                }
             }  
         }
     }
@@ -1004,8 +1019,6 @@ export class TinyTownScene extends Phaser.Scene {
 
         if(this.AUTOLAYER){// —— AUTO-LAYER CREATION ——
         // Compute selection bounds
-        const ex = startX + gridWidth - 1;
-        const ey = startY + gridHeight - 1;
         const w = gridWidth;
         const h = gridHeight;
         if (changed.length > 0) {
@@ -1026,18 +1039,21 @@ export class TinyTownScene extends Phaser.Scene {
             if (existingInfo) {
             // Move new tiles from featureLayer into the existing layer
             changed.forEach(({ x, y }) => {
-                const relX = x - startX;
-                const relY = y - startY;
+                const relX = x - existingInfo.bounds.x;
+                const relY = y - existingInfo.bounds.y;
                 const idx = this.featureLayer.getTileAt(x, y)?.index ?? -1;
-                existingInfo!.layer.putTileAt(idx, relX, relY);
-                this.featureLayer.removeTileAt(x, y);
+                if (idx >= 0) {
+                    existingInfo!.layer.putTileAt(idx, relX, relY);
+                    this.featureLayer.removeTileAt(x, y);
+                }
             });
             console.log()
             } else {
-            // No existing layer: create a new auto-named layer
-            this.autoLayerCounter = (this.autoLayerCounter || 0) + 1;
-            const autoName = `Layer ${this.autoLayerCounter}`;
-            this.nameSelection(autoName);
+                // No existing layer: create a new auto-named layer
+                this.autoLayerCounter = (this.autoLayerCounter || 0) + 1;
+                const autoName = `Layer ${this.autoLayerCounter}`;
+                this.nameSelection(autoName);
+                this.clearSelection();
             }
         }}
         console.groupEnd();
