@@ -1050,7 +1050,6 @@ export class TinyTownScene extends Phaser.Scene {
                 // No existing layer: create a new auto-named layer with generated name
                 const autoName = await Tree.createLayerName(chatHistory, w, h);
                 this.nameSelection(autoName);
-                this.clearSelection();
             }
         }}
         console.groupEnd();
