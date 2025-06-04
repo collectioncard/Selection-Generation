@@ -220,6 +220,11 @@ button:focus-visible {
   margin-right: 0.3em;
 }
 
+#layer-tree .selected-label {
+  background-color: rgba(120, 120, 120, 0.2);
+  border-radius: 4px;
+}
+
 .tile-button {
   margin: 0.2rem;
   padding: 0.5rem 1rem;
@@ -255,4 +260,126 @@ details summary {
   cursor: pointer;
   font-weight: bold;
   padding: 6px 0;
+}
+
+/* context menu */
+#layer-context-menu {
+  position: absolute;
+  background-color:  rgba(26, 26, 26, 0.95);
+  backdrop-filter: blur(4px);
+  border: 1px solid #555;
+  border-radius: 8px;
+  padding: 0.25em 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+  z-index: 2000;
+  display: none;
+  min-width: 140px;
+}
+
+#layer-context-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#layer-context-menu li {
+  padding: 0.5em 1.2em;
+  font-size: 0.95em;
+  cursor: pointer;
+  color: rgba(255,255,255,0.9);
+}
+
+#layer-context-menu li:hover {
+  background-color:  #868d8593;
+  color: #ffffff;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+.modal.hidden {
+  display: none;
+}
+/* modal box */
+.modal-content {
+  background: #1a1a1a;
+  padding: 1em 1.5em;
+  border-radius: 8px;
+  color: #fff;
+  max-width: 300px;
+  text-align: center;
+}
+.modal-buttons {
+  margin-top: 1em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+.modal-buttons button {
+  width: 100%;
+}
+
+#delete-modal .modal-content {
+  background-color: #1a1a1a;
+  border: 1px solid #127803;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.7);
+  padding: 1.2em 1.5em;
+  max-width: 320px;
+}
+
+#delete-modal p {
+  margin: 0;
+  margin-bottom: 1em;
+  font-size: 1em;
+  color: rgba(255,255,255,0.9);
+  text-align: center;
+}
+
+#delete-modal .modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+#delete-modal .modal-buttons button {
+  background-color: #242424;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.6em;
+  font-size: 1em;
+  font-family: inherit;
+  color: rgba(255,255,255,0.9);
+  cursor: pointer;
+  transition: border-color 0.25s, background-color 0.25s;
+}
+
+#delete-modal .modal-buttons button:hover {
+  border-color: #127803;
+  background-color: #1e1e1e;
+}
+
+#btn-delete-only {
+  color: #127803;
+}
+
+#btn-delete-with-assets {
+  color: #127803;
+}
+
+#btn-delete-cancel {
+  color: #ff3e3e;
+}
+
+#delete-modal .hidden {
+  display: none !important;
 }

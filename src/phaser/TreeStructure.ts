@@ -42,14 +42,23 @@ export class Tree {
     //      parentName: name of the parent layer
     // returns nothing
     delete(layerName: string = "", parentName: string = "") {
-        let parentNode = this.findNode(parentName);
-        let currentNode = this.findNode(layerName);
-        if (parentNode != undefined && currentNode != undefined) {
-            const index = parentNode.Children.indexOf(currentNode);
+        const parent = parentName ? this.findNode(parentName) : this.findNodeOfChild(layerName, this.Root)
+        const node = this.findNode(layerName)
+        if (parent && node) {
+            const index = parent.Children.indexOf(node)
             if (index !== -1) {
-                parentNode.Children.splice(index, 1);
+                parent.Children.splice(index, 1)
+                return true
             }
         }
+        return false
+    }
+
+    rename(oldName: string = "", newName: string = ""): boolean {
+        const node = this.findNode(oldName)
+        if (!node) return false
+        node.Name = newName
+        return true
     }
 
     // function: find()
@@ -57,18 +66,40 @@ export class Tree {
     //      layerName: name of the layer you are searching for
     //      currentNode: starts at the root node of the tree
     // returns the coordinates (index 0), width (index 1), and height(index 2).
-    find(layerName: string = "", currentNode: Node = this.Root) {
-        if (layerName == currentNode.Name) {
+    public find(layerName: string = "", currentNode: Node = this.Root): [[number[], number[]], number, number] | null {
+        if (currentNode.Name === layerName) {
             return [
                 currentNode.Coordinates, 
                 currentNode.Width, 
                 currentNode.Height
             ];
-        } else {
-            for (let childNode of currentNode.Children) {
-                this.find(layerName, childNode);
-            }
         }
+        for (const child of currentNode.Children) {
+            const found: [[number[], number[]], number, number] | null = this.find(layerName, child);
+            if (found) return found
+        }
+        return null
+    }
+
+    private findNode(layerName: string = "", current: Node = this.Root): Node | null {
+        if (current.Name === layerName) return current
+        for (const child of current.Children) {
+            const found = this.findNode(layerName, child)
+            if (found) return found
+        }
+        return null
+    }
+
+    private findNodeOfChild(
+        childName: string,
+        current: Node
+    ): Node | null {
+        for (const child of current.Children) {
+            if (child.Name === childName) return current
+            const deeper = this.findNodeOfChild(childName, child)
+            if (deeper) return deeper
+        }
+        return null
     }
 
     private suitableParentFind(Coordinates: [number[], number[]], currentNode: Node = this.Root): Node | null {
@@ -93,20 +124,6 @@ export class Tree {
         return currentNode;
     }    
 
-    // private function: find()
-    // parameters: 
-    //      layerName: name of the layer you are searching for
-    //      currentNode: starts at the root node of the tree
-    // returns the node with Name: layerName
-    private findNode(layerName: string = "", currentNode: Node = this.Root) {
-        if (layerName == currentNode.Name) {
-            return currentNode;
-        } else {
-            for (let childNode of currentNode.Children) {
-                this.find(layerName, childNode);
-            }
-        }
-    }
 
     printTree(currentNode: Node = this.Root) {
         let currentChildNameString = "";
@@ -117,6 +134,61 @@ export class Tree {
         for (let childNode of currentNode.Children) {
             this.printTree(childNode);
         }
+    }
+
+    getRoot() {
+        return this.Root;
+    }
+
+    getChildren(currNode: Node) {
+        return currNode.Children;
+    }
+
+    // Expose private findNode so callers can grab a Node object.
+    public getNode(layerName: string): Node | null {
+        return this.findNode(layerName, this.Root);
+    }
+
+    public deleteNode(layerName: string): boolean {
+        return this.delete(layerName);
+    }
+    
+    move(layerName: string, newParentName: string) {
+        console.log("called move on " + newParentName + " to be the parent of " + layerName);
+        let currentNode = this.findNode(layerName);
+        let newParent = this.findNode(newParentName);
+        let oldParent = this.findParent(layerName);
+        if (newParent && currentNode && oldParent) {
+            newParent.Children.push(currentNode);
+            let index = oldParent.Children.indexOf(currentNode);
+            oldParent.Children.splice(index, 1);
+        }
+
+        this.printTree();
+    }
+
+    moveToRoot(layerName: string) {
+        console.log("called move on root to be the parent of " + layerName);
+        let currentNode = this.findNode(layerName);
+        let oldParent = this.findParent(layerName);
+        if (currentNode && oldParent) {
+            this.Root.Children.push(currentNode);
+            let index = oldParent.Children.indexOf(currentNode);
+            oldParent.Children.splice(index, 1);
+        }
+
+        this.printTree();
+    }
+    
+    findParent(layerName: string = "", currentNode: Node = this.Root): Node | undefined {
+        for (let childNode of currentNode.Children) {
+            if (childNode.Name === layerName) {
+                return currentNode;
+            }
+            const result = this.findParent(layerName, childNode);
+            if (result) return result;
+        }
+        return undefined;
     }
 }
 
