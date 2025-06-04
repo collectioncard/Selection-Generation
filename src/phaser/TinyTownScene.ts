@@ -99,6 +99,7 @@ export class TinyTownScene extends Phaser.Scene {
 
     ////DEBUG / FEATURE FLAGS////
     private readonly allowOverwriting: boolean = true; // Allows LLM to overwrite placed tiles
+    private readonly AUTOLAYER: boolean = false;
     
     // Phaser map & tileset references
     private map!: Phaser.Tilemaps.Tilemap;
@@ -400,6 +401,7 @@ export class TinyTownScene extends Phaser.Scene {
 
 		this.paragraphDescription = this.wf.getDescriptionParagraph();
 		console.log(this.paragraphDescription);
+        this.wf.printWorldFacts()
 
         const startX = Math.min(this.selectionStart.x, this.selectionEnd.x);
         const startY = Math.min(this.selectionStart.y, this.selectionEnd.y);
@@ -427,7 +429,8 @@ export class TinyTownScene extends Phaser.Scene {
             if (this.paragraphDescription!=''){
                 selectionMessage =
                 `User has selected a rectangular region that is this size: ${selectionWidth}x${selectionHeight}. Here are the global coordinates for the selection box: [${startX}, ${startY}] to [${endX}, ${endY}].` +
-                `This is the description of the selection, this is only for context purposes and to help you understand what is selected: ${this.paragraphDescription}. ` +
+                `This is the description of the selection, this is only for context purposes and to help you understand what is selected: ${this.paragraphDescription}` +
+                `Doors are connection points / points of interest for you to connect paths with.` +
                 `Be sure to re-explain what is in the selection box. If there are objects in the selection, specify the characteristics of the object. ` +
                 `If no objects are inside the selection, then do not mention anything else.`;
             }else{
@@ -777,7 +780,7 @@ export class TinyTownScene extends Phaser.Scene {
     }
 
     getTilePriority(tileIndex: number): number {
-        if (tileIndex === -1 || tileIndex === -2) {
+        if (tileIndex === -1) {
             return TILE_PRIORITY.EMPTY; // -1
         }
         if ([44, 45, 46, 56, 58, 68, 69, 70].includes(tileIndex)) {
@@ -894,7 +897,7 @@ export class TinyTownScene extends Phaser.Scene {
         this.overlayMask.fillRect((x+width)*tw, y * th, fullW - (x+width)*tw, height * th);
     }
 
-    putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false){
+    putFeatureAtSelection(generatedData : completedSection, worldOverride = false, acceptneg = false, undoing = false){
         //console.groupCollapsed(`Placing: ${generatedData.name} (Override: ${worldOverride}, Undo: ${acceptneg}, AllowOverwrite: ${this.allowOverwriting})`);
 
         let startX = 0;
@@ -910,24 +913,21 @@ export class TinyTownScene extends Phaser.Scene {
             }
         }
 
-        if (!acceptneg) {
-            this.LastData = {
-                name: 'Undo State',
-                description: 'Previous map feature state',
-                grid: [],
-                points_of_interest: new Map(),
-            };
-            const currentTiles = this.featureLayer?.getTilesWithin(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT) || [];
-            this.LastData.grid = Array(this.CANVAS_HEIGHT).fill(0).map(() => Array(this.CANVAS_WIDTH).fill(-1));
-            currentTiles.forEach(tile => {
-                if (tile.index !== -1) {
-                    if (tile.y >= 0 && tile.y < this.CANVAS_HEIGHT && tile.x >= 0 && tile.x < this.CANVAS_WIDTH) {
-                        this.LastData.grid[tile.y][tile.x] = tile.index;
-                    }
+        this.LastData = {
+            name: 'Undo State',
+            description: 'Previous map feature state',
+            grid: [],
+            points_of_interest: new Map(),
+        };
+        const currentTiles = this.featureLayer?.getTilesWithin(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT) || [];
+        this.LastData.grid = Array(this.CANVAS_HEIGHT).fill(0).map(() => Array(this.CANVAS_WIDTH).fill(-1));
+        currentTiles.forEach(tile => {
+            if (tile.index !== -1) {
+                if (tile.y >= 0 && tile.y < this.CANVAS_HEIGHT && tile.x >= 0 && tile.x < this.CANVAS_WIDTH) {
+                    this.LastData.grid[tile.y][tile.x] = tile.index;
                 }
-            });
-        }
-
+            }
+        });
         const gridToPlace = generatedData.grid;
         const gridHeight = gridToPlace.length;
         const gridWidth = gridHeight > 0 ? (gridToPlace[0]?.length ?? 0) : 0;
@@ -957,20 +957,16 @@ export class TinyTownScene extends Phaser.Scene {
                      continue;
                  }
 
-                // Undo
-                if (acceptneg) {
-                    this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
-                    continue;
-                }
-
                 // Clear
-                if (newTileIndex === -2) {
+                if (acceptneg && newTileIndex === -2) {
                     this.featureLayer?.putTileAt(-1, placeX, placeY);
+                    console.log("deleted a tile at", placeX, placeY);
+                    changed.push({ x: placeX, y: placeY });
                     continue;
                 }
 
                 // Skip empty tiles
-                if (newTileIndex === -1) {
+                if (newTileIndex === -1 && !undoing) {
                     continue;
                 }
 
@@ -980,6 +976,7 @@ export class TinyTownScene extends Phaser.Scene {
                 if (this.allowOverwriting) {
                     const newPriority = this.getTilePriority(newTileIndex);
                     const currentPriority = this.getTilePriority(currentTileIndex);
+                    //console.log("doing stuff new: ", newPriority, "cur", currentPriority)
 
                     // // Explicit Check for fence and house no longer needed
                     // if (newPriority === TILE_PRIORITY.FENCE && currentPriority === TILE_PRIORITY.HOUSE) {
@@ -987,7 +984,7 @@ export class TinyTownScene extends Phaser.Scene {
                     // }
 
                     // console.log(`Check (${placeX}, ${placeY}): New P${newPriority} (ID ${newTileIndex}) vs Current P${currentPriority} (ID ${currentTileIndex})`);
-                    if (newPriority >= currentPriority) {
+                    if (newPriority >= currentPriority || undoing) {
                          // console.log(`   Placing: New P${newPriority} >= Current P${currentPriority} at (${placeX}, ${placeY})`);
                         this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
                         changed.push({ x: placeX, y: placeY });
@@ -1002,10 +999,10 @@ export class TinyTownScene extends Phaser.Scene {
                 } 
             } 
         } 
-
+        console.log(this.featureLayer.layer.data)
         this.pruneBrokenTrees(changed);
 
-        // —— AUTO-LAYER CREATION ——
+        if(this.AUTOLAYER){// —— AUTO-LAYER CREATION ——
         // Compute selection bounds
         const ex = startX + gridWidth - 1;
         const ey = startY + gridHeight - 1;
@@ -1032,18 +1029,17 @@ export class TinyTownScene extends Phaser.Scene {
                 const relX = x - startX;
                 const relY = y - startY;
                 const idx = this.featureLayer.getTileAt(x, y)?.index ?? -1;
-                if (idx >= 0) {
                 existingInfo!.layer.putTileAt(idx, relX, relY);
                 this.featureLayer.removeTileAt(x, y);
-                }
             });
+            console.log()
             } else {
             // No existing layer: create a new auto-named layer
             this.autoLayerCounter = (this.autoLayerCounter || 0) + 1;
             const autoName = `Layer ${this.autoLayerCounter}`;
             this.nameSelection(autoName);
             }
-        }
+        }}
         console.groupEnd();
     }
 

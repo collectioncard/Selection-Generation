@@ -54,6 +54,8 @@ const generators = {
     delete_layer: new DeleteLayerTool(getScene),
 }
 
+let draggedElement: HTMLElement | null = null;
+
 Object.values(generators).forEach(generator => {
     if (generator.toolCall) {
         registerTool(generator.toolCall);
@@ -74,9 +76,10 @@ document.getElementById('all-selection')?.addEventListener('click', () => {
 document.getElementById('clear-selected-tiles')?.addEventListener('click', () => {
     const scene = getScene();
     if (scene && scene.getSelection()) {
+        // args of offset are in local space.
         generators.clear.toolCall.invoke({
-            x: Math.min(scene.selectionStart.x, scene.selectionEnd.x),
-            y: Math.min(scene.selectionStart.y, scene.selectionEnd.y),
+            x: 0,
+            y: 0,
             width: scene.getSelection().width,
             height: scene.getSelection().height
         });
@@ -302,7 +305,15 @@ function makeNodeElement(node: any): HTMLLIElement {
         label = document.createElement('div')
         label.classList.add('file-label')
     }
+    
+    
     label.textContent = node.Name
+    label.dataset.name = node.Name;
+    label.setAttribute('draggable', 'true');
+    label.addEventListener('dragstart', startDrag);
+    label.addEventListener('dragover', allowDrop);
+    label.addEventListener('drop', drop);
+
 
     // highlight if this is the current selection
     if (node.Name === currentSelection) {
@@ -359,6 +370,69 @@ function makeNodeElement(node: any): HTMLLIElement {
     return li
 }
 
+function allowDrop(event: DragEvent) {
+    event.preventDefault();
+}
+
+function startDrag(event: DragEvent) {
+    const target = event.target as HTMLElement;
+    console.log("[dragstart]", target.dataset.name);
+    draggedElement = target;
+    event.dataTransfer?.setData('text/plain', target.dataset.name || '');
+}
+
+function drop(event: DragEvent) {
+    event.preventDefault();
+
+    const draggedName = draggedElement?.dataset.name;
+    const dropTarget = event.currentTarget as HTMLElement;
+    const targetName = dropTarget.dataset.name;
+
+    if (targetName === 'ROOT_DROP_ZONE') {
+        dropToRoot(draggedName);
+        return;
+    }
+
+    if (!draggedName || !targetName || draggedName === targetName) return;
+
+    console.log("[drop] Moving", draggedName, "into", targetName);
+
+    const scene = getScene() as any;
+    const sourceNode = findNode(draggedName, scene.layerTree.Root);
+    const targetNode = findNode(targetName, scene.layerTree.Root);
+
+    if (isDescendant(sourceNode, targetNode)) {
+        console.warn("Can't move into own descendant");
+        return;
+    }
+
+    scene.layerTree.move(draggedName, targetName);
+    buildLayerTree();
+}
+
+function isDescendant(parent: any, possibleChild: any): boolean {
+    if (!parent || !parent.Children) return false;
+    for (const child of parent.Children) {
+        if (child === possibleChild || isDescendant(child, possibleChild)) {
+            return true;
+        }
+    }
+    return false;
+} 
+
+// NEW: Handle drop to root level
+function dropToRoot(draggedName: string | undefined) {
+    if (!draggedName) return;
+
+    const scene = getScene() as any;
+
+    // Remove from existing parent
+    scene.layerTree.moveToRoot(draggedName);
+
+    console.log("[dropToRoot] Moved", draggedName, "to root");
+    buildLayerTree();
+}
+
 // Build the entire tree UI
 function buildLayerTree() {
     const s = getScene() as any
@@ -372,6 +446,9 @@ function buildLayerTree() {
     homeLi.classList.add('file');
     homeLabel.classList.add('file-label');
     homeLabel.textContent = 'Home';
+    homeLabel.dataset.name = 'ROOT_DROP_ZONE';
+    homeLabel.addEventListener('dragover', allowDrop);
+    homeLabel.addEventListener('drop', drop);
     // highlight “Home” when no layer is selected
     if (currentSelection === null) {
         homeLabel.classList.add('selected-label');
@@ -391,6 +468,7 @@ function buildLayerTree() {
     root.Children.forEach((child: any) => {
         ul.appendChild(makeNodeElement(child))
     })
+
     treeContainer.appendChild(ul)
     if (highlightMode) updateHighlights()
 }

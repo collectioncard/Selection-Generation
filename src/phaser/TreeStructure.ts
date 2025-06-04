@@ -104,38 +104,26 @@ export class Tree {
 
     private suitableParentFind(Coordinates: [number[], number[]], currentNode: Node = this.Root): Node | null {
         // Check if the new node can fit within currentNode
-        // const isWithin =
-        //     Coordinates[0][0] >= currentNode.Coordinates[0][0] &&
-        //     Coordinates[0][1] >= currentNode.Coordinates[0][1] &&
-        //     Coordinates[1][0] <= currentNode.Coordinates[1][0] &&
-        //     Coordinates[1][1] <= currentNode.Coordinates[1][1];
+        const isWithin =
+            Coordinates[0][0] >= currentNode.Coordinates[0][0] &&
+            Coordinates[0][1] >= currentNode.Coordinates[0][1] &&
+            Coordinates[1][0] <= currentNode.Coordinates[1][0] &&
+            Coordinates[1][1] <= currentNode.Coordinates[1][1];
     
-        // if (!isWithin) {
-        //     return null;
-        // }
-
-        // for (let childNode of currentNode.Children) {
-        //     const result = this.suitableParentFind(Coordinates, childNode);
-        //     if (result !== null) {
-        //         return result;
-        //     }
-        // }
-
-        // return currentNode;
-        const [[sx, sy], [ex, ey]] = Coordinates
-        const [[px, py], [qx, qy]] = currentNode.Coordinates
-        const within =
-            sx >= px && sy >= py &&
-            ex <= qx && ey <= qy
-
-        if (!within) return null
-
-        for (const child of currentNode.Children) {
-            const candidate = this.suitableParentFind(Coordinates, child)
-            if (candidate) return candidate
+        if (!isWithin) {
+            return null;
         }
-        return currentNode
+
+        for (let childNode of currentNode.Children) {
+            const result = this.suitableParentFind(Coordinates, childNode);
+            if (result !== null) {
+                return result;
+            }
+        }
+
+        return currentNode;
     }    
+
 
     printTree(currentNode: Node = this.Root) {
         let currentChildNameString = "";
@@ -163,6 +151,44 @@ export class Tree {
 
     public deleteNode(layerName: string): boolean {
         return this.delete(layerName);
+    }
+    
+    move(layerName: string, newParentName: string) {
+        console.log("called move on " + newParentName + " to be the parent of " + layerName);
+        let currentNode = this.findNode(layerName);
+        let newParent = this.findNode(newParentName);
+        let oldParent = this.findParent(layerName);
+        if (newParent && currentNode && oldParent) {
+            newParent.Children.push(currentNode);
+            let index = oldParent.Children.indexOf(currentNode);
+            oldParent.Children.splice(index, 1);
+        }
+
+        this.printTree();
+    }
+
+    moveToRoot(layerName: string) {
+        console.log("called move on root to be the parent of " + layerName);
+        let currentNode = this.findNode(layerName);
+        let oldParent = this.findParent(layerName);
+        if (currentNode && oldParent) {
+            this.Root.Children.push(currentNode);
+            let index = oldParent.Children.indexOf(currentNode);
+            oldParent.Children.splice(index, 1);
+        }
+
+        this.printTree();
+    }
+    
+    findParent(layerName: string = "", currentNode: Node = this.Root): Node | undefined {
+        for (let childNode of currentNode.Children) {
+            if (childNode.Name === layerName) {
+                return currentNode;
+            }
+            const result = this.findParent(layerName, childNode);
+            if (result) return result;
+        }
+        return undefined;
     }
 }
 
