@@ -1,6 +1,7 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 
 import { BaseMessage, ToolMessage, SystemMessage } from "@langchain/core/messages";
+import { tool } from "@langchain/core/tools";
 
 const tilestuff = await fetch('../phaserAssets/Assets/TileDatabase.json')
   .then(response => response.json());
@@ -53,8 +54,10 @@ const tilestuff = await fetch('../phaserAssets/Assets/TileDatabase.json')
 console.log(tilestuff)
 console.log(JSON.stringify(tilestuff))
 
-const apiKey: string = import.meta.env.VITE_LLM_API_KEY;
-const modelName: string = import.meta.env.VITE_LLM_MODEL_NAME;
+const apiKey: string | undefined  = import.meta.env.VITE_LLM_API_KEY;
+const modelName: string | undefined = import.meta.env.VITE_LLM_MODEL_NAME;
+if (!apiKey) throw new Error("Missing VITE_LLM_API_KEY in environment");
+if (!modelName) throw new Error("Missing VITE_LLM_MODEL_NAME in environment");
 
 const temperature = 0;
 
@@ -69,25 +72,29 @@ const llm = new ChatGoogleGenerativeAI({
 // this stores the references to the tool functions with their schemas
 let tools : any = [];
 // this stores backwards references to the tool functions from their names
-let toolsByName : any = {};
+let toolsByName: Record<string, any> = {};
 
 // this is the llm to call that has the tools
 // it needs to be rebound after all tools are in the list.
-let llmWithTools : any= llm.bindTools(tools);
+let llmWithTools: ReturnType<typeof llm.bindTools> | null = null;
 
 
 // Removed example add tool, if debugging, it can be found at commit e47c980
 // https://github.com/collectioncard/Selection-Generation/blob/b78f4e48726f6da031606f6653960f227da39373/src/modelChat/apiConnector.ts
 
 export function registerTool(tool: any){
+  if(toolsByName[tool.name]){
+    console.warn(`Tool "${tool.name}" was already registered; overwriting.`);
+  }
     tools.push(tool);
     toolsByName[tool.name] = tool;
     console.log("Tool registered: ", tool.name);
-    // not efficient to be rebinding the tools every time, but this is a quick fix
-    // to make sure the tools are always up to date
-    // if possible, initializeLLM should be called after all tools are registered
-    // and then llmWithTools should be called once
-    llmWithTools = llm.bindTools(tools);
+}
+
+export function initializeTools(){
+  if(llmWithTools) return;
+  llmWithTools = llm.bindTools(tools);
+  console.log("All tools bound to LLM:", Object.keys(toolsByName));
 }
 
 export async function initilizeLLM(chatMessageHistory: BaseMessage[]): Promise<void> {
@@ -99,41 +106,62 @@ export async function initilizeLLM(chatMessageHistory: BaseMessage[]): Promise<v
 }
 
 export async function getChatResponse(chatMessageHistory: BaseMessage[]): Promise<string> {
+  if(!llmWithTools){
+      throw new Error("LLM has not been initialized with tools. Did you forget to call initializeTools()?");
+  }
+
   try {
     let response = await llmWithTools.invoke(chatMessageHistory);
+
+    console.log("Raw LLM resoponse: ", response);
+
     chatMessageHistory.push(response); // This is required for tools to work
 
     // Iterate through all tool calls
-    for (const toolCall of response.tool_calls) {
+    const calls = response.tool_calls ?? [];
+    for (const toolCall of calls) {
+      const selectedTool = toolsByName[toolCall.name];
+      if(!selectedTool){
+        const msg = `Error: Unknown tool "${toolCall.name}".`;
+        console.error(msg);
+        chatMessageHistory.push(new ToolMessage({
+          name: toolCall.name,
+          content: msg,
+          tool_call_id: String(toolCall.id || "")
+        }));
+        continue;
+      }
       try {
-        const selectedTool = toolsByName[toolCall.name];
         const result = await selectedTool.invoke(toolCall.args);
-
         console.log(`Tool called ${toolCall.name} with result: ${result}`);
+
         chatMessageHistory.push(new ToolMessage({
           name: toolCall.name,
           content: result,
-          tool_call_id: toolCall.id
+          tool_call_id: String(toolCall.id || "")
         }));
+
       } catch (toolError) {
         console.error(`Tool ${toolCall.name} failed:`, toolError);
         // Add error message to chat history
-        const errorMessage = `Error: Tool '${toolCall.name}' failed with args: ${JSON.stringify(toolCall.args)}. 
-        Error details: ${toolError}. Please try again with different parameters.`;
+        const errorMessage = 
+        `Error: Tool '${toolCall.name}' failed with args: ${JSON.stringify(toolCall.args)}.\n` + 
+        `Details: ${toolError}. Please try again with different parameters.`;
 
         chatMessageHistory.push(new ToolMessage({
           name: toolCall.name,
           content: errorMessage,
-          tool_call_id: toolCall.id
+          tool_call_id: String(toolCall.id || "")
         }));
       }
     }
 
     // If a tool is called then ask the LLM to comment on it
-    if (response.tool_calls.length > 0) {
+    if (calls.length > 0) {
       response = await llmWithTools.invoke(chatMessageHistory);
+      console.log("Raw LLM response after tool calls:", response);
     }
-    return response.content ?? "Error communicating with model :(";
+    return String(response.content) ?? "Error communicating with model :(";
   }
   catch (error) {
     console.error("Error in LLM call: ", error);

@@ -2,7 +2,7 @@ import './style.css'
 import {createGame, TinyTownScene} from "./phaser/TinyTownScene.ts";
 import './modelChat/chatbox.ts';
 // Register tools from the scene to the apiConnector
-import { registerTool } from './modelChat/apiConnector.ts';
+import { initializeTools, registerTool } from './modelChat/apiConnector.ts';
 import { DecorGenerator } from './phaser/featureGenerators/decorGenerator.ts';
 import { ForestGenerator } from './phaser/featureGenerators/forestGenerator.ts';
 import { HouseGenerator } from './phaser/featureGenerators/houseGenerator.ts';
@@ -61,6 +61,8 @@ Object.values(generators).forEach(generator => {
         registerTool(generator.toolCall);
     }
 });
+
+initializeTools();
 
 //I'll be sad if anyone removes my funny faces. They bring me joy when stuff doesn't work - Thomas
 document.title = "Selection Generation " + getRandEmoji();
