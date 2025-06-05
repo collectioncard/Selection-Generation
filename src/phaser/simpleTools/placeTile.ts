@@ -19,8 +19,13 @@ export class TilePlacer implements FeatureGenerator {
         return "Tool Failed, no reference to scene."
       }
       let selection = scene.getSelection()
-      scene.putFeatureAtSelection(this.generate(selection, [x, y, tileID]));
-      return `placed ${tileID} at: ${[x,y]}`;
+      try {
+        await scene.putFeatureAtSelection(this.generate(selection, [x, y, tileID]));
+        return `placed ${tileID} at: ${[x,y]}`;
+      } catch (e) {
+        console.error("putFeatureAtSelection failed:", e);
+        return `Failed to place tile`;
+      }
     },
     {
       name: "add",

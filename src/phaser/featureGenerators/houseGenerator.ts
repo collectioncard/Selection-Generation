@@ -79,8 +79,13 @@ export class HouseGenerator implements FeatureGenerator {
       if (!scene) return "Tool Failed: No reference to scene.";
       const selection = scene.getSelection();
       var tmp = this.generate(selection, args)
-      scene.putFeatureAtSelection(tmp);
-      return "House added. at: (" + lastHouseX + ", " + lastHouseY + "). the connection point is at: (" + (lastHouseX+Math.floor(lastHouseWidth/2)) + ", " + (lastHouseY+lastHouseHeight)+").";
+      try {
+        await scene.putFeatureAtSelection(tmp);
+        return "House added. at: (" + lastHouseX + ", " + lastHouseY + "). the connection point is at: (" + (lastHouseX+Math.floor(lastHouseWidth/2)) + ", " + (lastHouseY+lastHouseHeight)+").";
+      } catch (e) {
+        console.error("putFeatureAtSelection failed:", e);
+        return `Failed to place house`;
+      }
     },
     {
       name: "house",
