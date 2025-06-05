@@ -2,7 +2,7 @@ import './style.css'
 import {createGame, TinyTownScene} from "./phaser/TinyTownScene.ts";
 import './modelChat/chatbox.ts';
 // Register tools from the scene to the apiConnector
-import { registerTool, resetLLMHistory } from './modelChat/apiConnector.ts';
+import { registerTool } from './modelChat/apiConnector.ts';
 import { DecorGenerator } from './phaser/featureGenerators/decorGenerator.ts';
 import { ForestGenerator } from './phaser/featureGenerators/forestGenerator.ts';
 import { HouseGenerator } from './phaser/featureGenerators/houseGenerator.ts';
