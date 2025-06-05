@@ -1139,6 +1139,52 @@ export class TinyTownScene extends Phaser.Scene {
         this.selectedTileId = id;
         console.log("Selected tile ID:", id);
     }
+    //TODO: THIS IS STUPID, FIX THIS LATER - Thomas
+    //flatten all of the layers into a single array of tile IDs
+    public GetFlattenedTileMap(): number[][] {
+        const flattened: number[][] = [];
+        for (let y = 0; y < this.CANVAS_HEIGHT; y++) {
+            const row: number[] = [];
+            for (let x = 0; x < this.CANVAS_WIDTH; x++) {
+                const tile = this.featureLayer.getTileAt(x, y);
+                row.push(tile ? tile.index : -1);
+            }
+            flattened.push(row);
+        }
+        return flattened;
+    }
+
+    public loadMapFromJSON(mapData: number[][]): void {
+        if (this.featureLayer) {
+            this.featureLayer.forEachTile(tile => {
+                this.featureLayer.removeTileAt(tile.x, tile.y);
+            });
+        }
+        
+        this.namedLayers.forEach((info, name) => {
+            info.layer.destroy(true);
+        });
+        this.namedLayers.clear();
+        
+        this.layerTree = new Tree("Root", [[0, 0], [this.CANVAS_WIDTH, this.CANVAS_HEIGHT]], this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
+        
+        this.clearSelection();
+        this.clearLayerHighlights();
+        
+        for (let y = 0; y < Math.min(mapData.length, this.CANVAS_HEIGHT); y++) {
+            for (let x = 0; x < Math.min(mapData[y].length, this.CANVAS_WIDTH); x++) {
+                const tileId = mapData[y][x];
+                if (tileId !== -1) {
+                    this.featureLayer.putTileAt(tileId, x, y);
+                }
+            }
+        }
+        
+        console.log('Map loaded from JSON data');
+        
+        this.resetView();
+        
+    }
 }
 
 export function createGame(attachPoint: HTMLDivElement) {

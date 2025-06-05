@@ -2,7 +2,7 @@ import './style.css'
 import {createGame, TinyTownScene} from "./phaser/TinyTownScene.ts";
 import './modelChat/chatbox.ts';
 // Register tools from the scene to the apiConnector
-import { registerTool } from './modelChat/apiConnector.ts';
+import { registerTool, resetLLMHistory } from './modelChat/apiConnector.ts';
 import { DecorGenerator } from './phaser/featureGenerators/decorGenerator.ts';
 import { ForestGenerator } from './phaser/featureGenerators/forestGenerator.ts';
 import { HouseGenerator } from './phaser/featureGenerators/houseGenerator.ts';
@@ -17,6 +17,7 @@ import { NameLayerTool } from './phaser/simpleTools/layerTools.ts';
 import { SelectLayerTool } from './phaser/simpleTools/layerTools.ts';
 import { RenameLayerTool } from './phaser/simpleTools/layerTools.ts';
 import { DeleteLayerTool } from './phaser/simpleTools/layerTools.ts';
+import {clearChatHistory} from "./modelChat/chatbox.ts";
 
 let gameInstance: Phaser.Game | null = null;
 
@@ -106,6 +107,76 @@ document.getElementById('get-Coords')?.addEventListener('click', () => {
             console.error('Error copying text: ', err);
         });
     }
+});
+
+// Save map to JSON file
+document.getElementById('saveMap')?.addEventListener('click', () => {
+    const scene = getScene();
+    if (scene) {
+        const tileMap = scene.GetFlattenedTileMap();
+        const jsonString = JSON.stringify(tileMap, null, 2);
+        
+        // Create a blob and trigger download
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'tilemap.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        console.log('Map saved to JSON file');
+    }
+});
+
+document.getElementById('loadMap')?.addEventListener('click', () => {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+    
+    fileInput.onchange = (event) => {
+        const target = event.target as HTMLInputElement;
+        if (!target.files || target.files.length === 0) return;
+        
+        const file = target.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            try {
+                const result = e.target?.result;
+                if (typeof result === 'string') {
+                    const jsonData = JSON.parse(result);
+                    
+                    // Validate the data format
+                    if (Array.isArray(jsonData) && 
+                        jsonData.length > 0 && 
+                        Array.isArray(jsonData[0])) {
+                        
+                        const scene = getScene();
+                        scene.loadMapFromJSON(jsonData);
+                        
+                        // Reset LLM history when loading a new map
+                        clearChatHistory();
+                        
+                        console.log('Map loaded from JSON file');
+                    } else {
+                        console.error('Invalid map data format');
+                        alert('Invalid map data format. Please select a valid map file.');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading map:', error);
+                alert('Error loading map file. Please try again.');
+            }
+        };
+        
+        reader.readAsText(file);
+    };
+    
+    // Trigger the file dialog
+    fileInput.click();
 });
 
 const toggleBtn = document.getElementById('toggle-highlights') as HTMLButtonElement;
