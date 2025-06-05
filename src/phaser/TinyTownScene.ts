@@ -262,21 +262,7 @@ export class TinyTownScene extends Phaser.Scene {
             }
         });
 
-        //Feature generator demo -- Erase if you don't need this
-        // 1. Create a generatorInput obj with a 2D array the size of the feature you want. (min is 5x5 for most I think?)
-        const houseInput: generatorInput = {
-            grid: new Array(5).fill(-1).map(() => new Array(5).fill(-1)),
-            width: 5,
-            height: 5
-        };
         
-        const houseGen = new HouseGenerator(() => this);
-
-        // 2. Pass it to the generator you want. House in this case.
-        const generatedData: completedSection = houseGen.generate(houseInput);
-        
-        // 3. Put that somewhere in the feature layer. 1,1 for this example.
-        this.featureLayer.putTilesAt(generatedData.grid, 1, 1);
       
         //highlight box
         this.highlightBox = this.add.graphics();
