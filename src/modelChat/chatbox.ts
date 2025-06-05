@@ -34,6 +34,7 @@ document.querySelector('#llm-chat-form')!.addEventListener('submit', async funct
     
 });
 
+/*
 export function addChatMessage(chatMessage: BaseMessage): HTMLLIElement {
     //Add message to history
     chatHistory.push(chatMessage);
@@ -45,6 +46,35 @@ export function addChatMessage(chatMessage: BaseMessage): HTMLLIElement {
     chatHistoryList.appendChild(messageItem);
     return messageItem;
 }
+*/
+
+export function addChatMessage(chatMessage: BaseMessage): HTMLLIElement {
+    const li   = document.createElement('li');
+    const tag  = document.createElement('span');
+    const text = document.createElement('p');
+  
+    text.textContent = chatMessage.content as string;
+  
+    if (chatMessage._getType() === 'human') {
+      li.className  = 'chat-user';
+      tag.className = 'tag tag-user';
+      tag.textContent = 'You';
+    } else {
+      li.className  = 'chat-ai';
+      tag.className = 'tag tag-ai';
+      tag.textContent = 'AI';
+    }
+  
+    li.appendChild(tag);
+    li.appendChild(text);
+  
+    chatHistory.push(chatMessage);
+    chatHistoryList.appendChild(li);
+    return li;
+  }
+  
+  
+
 
 //Detect if something modified the chat box and scroll to the bottom
 const observer = new MutationObserver(() => {
