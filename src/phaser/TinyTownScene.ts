@@ -531,6 +531,7 @@ export class TinyTownScene extends Phaser.Scene {
           featureGrid: Array(height).fill(0).map(() => Array(width).fill(-1)),
           combinedGrid: Array(height).fill(0).map(() => Array(width).fill(-1))
         };
+        this.selectedTileSet.clear();
         
         // Populate coordinates and tile IDs
         for (let y = 0; y < height; y++) {
@@ -566,6 +567,7 @@ export class TinyTownScene extends Phaser.Scene {
                         const tile = info.layer.getTileAt(localX, localY);
                         if(tile && tile.index >= 0) {
                             namedTileId = tile.index;
+                            break; // Found a tile in a named layer, no need to check others
                         }
                     }
                 }
@@ -926,21 +928,40 @@ export class TinyTownScene extends Phaser.Scene {
             }
         }
 
-        this.LastData = {
-            name: 'Undo State',
-            description: 'Previous map feature state',
-            grid: [],
-            points_of_interest: new Map(),
-        };
-        const currentTiles = this.featureLayer?.getTilesWithin(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT) || [];
-        this.LastData.grid = Array(this.CANVAS_HEIGHT).fill(0).map(() => Array(this.CANVAS_WIDTH).fill(-1));
-        currentTiles.forEach(tile => {
-            if (tile.index !== -1) {
-                if (tile.y >= 0 && tile.y < this.CANVAS_HEIGHT && tile.x >= 0 && tile.x < this.CANVAS_WIDTH) {
-                    this.LastData.grid[tile.y][tile.x] = tile.index;
+        if(!acceptneg){
+            this.LastData = {
+                name: 'Undo State',
+                description: 'Previous map feature state',
+                grid: [],
+                points_of_interest: new Map(),
+            };
+            const currentTiles = this.featureLayer?.getTilesWithin(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT) || [];
+            this.LastData.grid = Array(this.CANVAS_HEIGHT).fill(0).map(() => Array(this.CANVAS_WIDTH).fill(-1));
+            currentTiles.forEach(tile => {
+                if (tile.index !== -1) {
+                    if (tile.y >= 0 && tile.y < this.CANVAS_HEIGHT && tile.x >= 0 && tile.x < this.CANVAS_WIDTH) {
+                        this.LastData.grid[tile.y][tile.x] = tile.index;
+                    }
+                }
+            });
+
+            for (const info of this.namedLayers.values()) {
+                const { x: lx, y: ly, width: w, height: h } = info.bounds;
+                // Loop over that layer’s entire rectangle
+                for (let localY = 0; localY < h; localY++) {
+                    for (let localX = 0; localX < w; localX++) {
+                        const t = info.layer.getTileAt(localX, localY);
+                        if (t && t.index >= 0) {
+                        // Compute world‐coords and copy into LastData.grid
+                        const worldX = lx + localX;
+                        const worldY = ly + localY;
+                        this.LastData.grid[worldY][worldX] = t.index;
+                        }
+                    }
                 }
             }
-        });
+        }
+
         const gridToPlace = generatedData.grid;
         const gridHeight = gridToPlace.length;
         const gridWidth = gridHeight > 0 ? (gridToPlace[0]?.length ?? 0) : 0;
@@ -966,9 +987,9 @@ export class TinyTownScene extends Phaser.Scene {
                 }
 
                 const newTileIndex = gridToPlace[yOffset]?.[xOffset];
-                 if (newTileIndex === undefined) {
-                     continue;
-                 }
+                if (newTileIndex === undefined) {
+                    continue;
+                }
 
                 // Clear
                 if (acceptneg && newTileIndex === -2) {
@@ -1015,43 +1036,74 @@ export class TinyTownScene extends Phaser.Scene {
         console.log(this.featureLayer.layer.data)
         this.pruneBrokenTrees(changed);
 
-        if(this.AUTOLAYER){// —— AUTO-LAYER CREATION ——
-        // Compute selection bounds
-        const w = gridWidth;
-        const h = gridHeight;
-        if (changed.length > 0) {
-            // Try to find an existing layer with identical bounds
-            let existingInfo: { layer: Phaser.Tilemaps.TilemapLayer; bounds: { x: number; y: number; width: number; height: number } } | undefined;
-            for (const info of this.namedLayers.values()) {
-            if (
-                info.bounds.x === startX &&
-                info.bounds.y === startY &&
-                info.bounds.width === w &&
-                info.bounds.height === h
-            ) {
-                existingInfo = info;
-                break;
-            }
-            }
+        if (generatedData.name === 'ClearBox') {
+            // Compute the selection’s world‐bounds again:
+            const selStartX = startX;
+            const selStartY = startY;
+            const selEndX   = startX + gridWidth  - 1;
+            const selEndY   = startY + gridHeight - 1;
 
-            if (existingInfo) {
-            // Move new tiles from featureLayer into the existing layer
-            changed.forEach(({ x, y }) => {
-                const relX = x - existingInfo.bounds.x;
-                const relY = y - existingInfo.bounds.y;
-                const idx = this.featureLayer.getTileAt(x, y)?.index ?? -1;
-                if (idx >= 0) {
-                    existingInfo!.layer.putTileAt(idx, relX, relY);
-                    this.featureLayer.removeTileAt(x, y);
+            // For each named layer, check if our “clear rectangle” overlaps its bounds.
+            for (const info of this.namedLayers.values()) {
+                const b = info.bounds;
+                // Do the two rectangles overlap?
+                const overlapX1 = Math.max(selStartX, b.x);
+                const overlapY1 = Math.max(selStartY, b.y);
+                const overlapX2 = Math.min(selEndX,   b.x + b.width  - 1);
+                const overlapY2 = Math.min(selEndY,   b.y + b.height - 1);
+
+                if (overlapX1 <= overlapX2 && overlapY1 <= overlapY2) {
+                    // They overlap: remove every tile in that intersection from the named layer
+                    for (let wy = overlapY1; wy <= overlapY2; wy++) {
+                        for (let wx = overlapX1; wx <= overlapX2; wx++) {
+                            const localX = wx - b.x;
+                            const localY = wy - b.y;
+                            info.layer.removeTileAt(localX, localY);
+                        }
+                    }
                 }
-            });
-            console.log()
-            } else {
-                // No existing layer: create a new auto-named layer with generated name
-                const autoName = await Tree.createLayerName(chatHistory, w, h);
-                this.nameSelection(autoName);
             }
-        }}
+        }
+
+        if(this.AUTOLAYER && generatedData.name !== 'Undo State' && generatedData.name !== 'ClearBox'){
+        console.groupCollapsed(`Auto-layering: ${generatedData.name}`);
+            // Compute selection bounds
+            const w = gridWidth;
+            const h = gridHeight;
+            if (changed.length > 0) {
+                // Try to find an existing layer with identical bounds
+                let existingInfo: { layer: Phaser.Tilemaps.TilemapLayer; bounds: { x: number; y: number; width: number; height: number } } | undefined;
+                for (const info of this.namedLayers.values()) {
+                if (
+                    info.bounds.x === startX &&
+                    info.bounds.y === startY &&
+                    info.bounds.width === w &&
+                    info.bounds.height === h
+                ) {
+                    existingInfo = info;
+                    break;
+                }
+                }
+
+                if (existingInfo) {
+                // Move new tiles from featureLayer into the existing layer
+                changed.forEach(({ x, y }) => {
+                    const relX = x - existingInfo.bounds.x;
+                    const relY = y - existingInfo.bounds.y;
+                    const idx = this.featureLayer.getTileAt(x, y)?.index ?? -1;
+                    if (idx >= 0) {
+                        existingInfo!.layer.putTileAt(idx, relX, relY);
+                        this.featureLayer.removeTileAt(x, y);
+                    }
+                });
+                console.log()
+                } else {
+                    // No existing layer: create a new auto-named layer with generated name
+                    const autoName = await Tree.createLayerName(chatHistory, w, h);
+                    this.nameSelection(autoName);
+                }
+            }
+        }
         console.groupEnd();
     }
 
