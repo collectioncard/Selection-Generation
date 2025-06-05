@@ -1,10 +1,11 @@
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: light;
+  color: #222;
+  background-color: #f6f3ee;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -18,7 +19,8 @@ body {
   align-items: center;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #242424;
+  background-color: #f6f3ee;
+  color: #222;
   position: relative;
 }
 
@@ -40,20 +42,20 @@ body {
 
 button {
   border-radius: 8px;
-  border: none;
+  border: 1px solid #d2cec6;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 600;
   font-family: inherit;
-  background-color: #1a1a1a;
-  color: #ddd;
+  background-color: #ffffff;
+  color: #333;
   cursor: pointer;
   transition: background-color 0.2s, border 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 button:hover {
-  background-color: #333;
+  background-color: #f0ede8;
 }
 
 button:focus-visible {
@@ -63,6 +65,7 @@ button:focus-visible {
 .btn-primary {
   background: #19c37d;
   color: #fff;
+  border: none;
 }
 
 .btn-primary:hover {
@@ -72,6 +75,7 @@ button:focus-visible {
 .btn-danger {
   background: #ff4d4d;
   color: #fff;
+  border: none;
 }
 
 .btn-danger:hover {
@@ -98,6 +102,8 @@ button:focus-visible {
 
 #clear-selection {
   background-color: #ff4d4d;
+  color: #fff;
+  border: none;
 }
 
 #clear-selection:hover {
@@ -105,11 +111,11 @@ button:focus-visible {
 }
 
 #sidebar {
-  background: #2b2b2b;
-  border: 1px solid #393939;
+  background: #ffffff;
+  border: 1px solid #e6e0d7;
   border-radius: 12px;
   padding: 24px 20px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
   margin-left: 220px;
   display: flex;
   flex-direction: column;
@@ -117,8 +123,8 @@ button:focus-visible {
 }
 
 #llm-chat {
-  background: #2e2e2e;
-  border: 1px solid #3d3d3d;
+  background: #ffffff;
+  border: 1px solid #e6e0d7;
   border-radius: 10px;
   padding: 16px;
   width: 500px;
@@ -129,7 +135,7 @@ button:focus-visible {
   flex-direction: column;
   justify-content: flex-end;
   margin-left: 1em;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
 #chat-history {
@@ -156,11 +162,11 @@ button:focus-visible {
 }
 
 #tile-picker {
-  background: #2e2e2e;
-  border: 1px solid #3d3d3d;
+  background: #ffffff;
+  border: 1px solid #e6e0d7;
   border-radius: 10px;
   padding: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
 .tile-category {
@@ -173,18 +179,18 @@ button:focus-visible {
 .tile-button {
   padding: 8px;
   font-size: 16px;
-  border: 1px solid #4a4a4a;
+  border: 1px solid #dcd6cc;
   border-radius: 6px;
-  background: #3b3b3b;
-  color: #ccc;
+  background: #faf8f4;
+  color: #333;
   cursor: pointer;
   transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 
 .tile-button:hover {
-  background: #4d4d4d;
-  transform: scale(1.15);
-  box-shadow: 0 0 8px rgba(25, 195, 125, 0.6);
+  background: #ede7df;
+  transform: scale(1.12);
+  box-shadow: 0 0 6px rgba(25, 195, 125, 0.4);
 }
 
 .tile-button.selected {
@@ -204,12 +210,13 @@ details summary {
   width: 200px;
   max-height: 400px;
   overflow-y: auto;
-  background: #2e2e2e;
-  border: 1px solid #3d3d3d;
+  background: #ffffff;
+  border: 1px solid #e6e0d7;
   border-radius: 10px;
   padding: 0.5em;
-  color: #fff;
+  color: #222;
   z-index: 1001;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
 #layer-tree.hidden {
@@ -231,21 +238,21 @@ details summary {
 }
 
 #layer-tree .selected-label {
-  background-color: rgba(0, 140, 255, 0.1);
+  background-color: rgba(25, 195, 125, 0.1);
   border-radius: 4px;
 }
 
 #layer-context-menu {
   position: absolute;
-  background-color: rgba(50, 50, 50, 0.95);
-  backdrop-filter: blur(4px);
-  border: 1px solid #555;
+  background-color: #ffffff;
+  border: 1px solid #e6e0d7;
   border-radius: 8px;
   padding: 0.25em 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   z-index: 2000;
   display: none;
   min-width: 140px;
+  color: #222;
 }
 
 #layer-context-menu ul {
@@ -258,11 +265,10 @@ details summary {
   padding: 0.5em 1.2em;
   font-size: 0.95em;
   cursor: pointer;
-  color: #fff;
 }
 
 #layer-context-menu li:hover {
-  background-color: #666;
+  background-color: #f0ede8;
 }
 
 .modal {
@@ -271,7 +277,7 @@ details summary {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -283,14 +289,14 @@ details summary {
 }
 
 .modal-content {
-  background: #2e2e2e;
-  border: 1px solid #3d3d3d;
+  background: #ffffff;
+  border: 1px solid #e6e0d7;
   border-radius: 12px;
   padding: 1.2em 1.5em;
-  color: #fff;
+  color: #222;
   max-width: 320px;
   text-align: center;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
 .modal-buttons {
@@ -302,14 +308,17 @@ details summary {
 
 .modal-buttons button {
   width: 100%;
-  background: #3b3b3b;
-  color: #ccc;
+  background: #faf8f4;
+  color: #333;
+  border: 1px solid #dcd6cc;
 }
 
 .modal-buttons button:hover {
-  background: #4d4d4d;
+  background: #ede7df;
 }
 
 #btn-delete-cancel {
   color: #ff4d4d;
+  border: none;
 }
+
