@@ -1021,6 +1021,16 @@ export class TinyTownScene extends Phaser.Scene {
                     if (newPriority >= currentPriority || undoing) {
                          // console.log(`   Placing: New P${newPriority} >= Current P${currentPriority} at (${placeX}, ${placeY})`);
                         this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
+                        if(undoing) {
+                            for(const info of this.namedLayers.values()) {
+                                const b = info.bounds;
+                                if (placeX >= b.x && placeX < b.x + b.width && placeY >= b.y && placeY < b.y + b.height) {
+                                    const localX = placeX - b.x;
+                                    const localY = placeY - b.y;
+                                    info.layer.removeTileAt(localX, localY);
+                                }
+                            }
+                        }
                         changed.push({ x: placeX, y: placeY });
                     } else {
                         // console.log(`   Skipping: New P${newPriority} < Current P${currentPriority} at (${placeX}, ${placeY})`);
@@ -1028,6 +1038,16 @@ export class TinyTownScene extends Phaser.Scene {
                 } else {
                     if (currentTileIndex === -1) {
                         this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
+                        if(undoing) {
+                            for(const info of this.namedLayers.values()) {
+                                const b = info.bounds;
+                                if (placeX >= b.x && placeX < b.x + b.width && placeY >= b.y && placeY < b.y + b.height) {
+                                    const localX = placeX - b.x;
+                                    const localY = placeY - b.y;
+                                    info.layer.removeTileAt(localX, localY);
+                                }
+                            }
+                        }
                         changed.push({ x: placeX, y: placeY });
                     }
                 } 
