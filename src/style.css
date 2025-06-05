@@ -2,7 +2,7 @@
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color-scheme: light dark;
+  color-scheme: dark;
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
   font-synthesis: none;
@@ -32,35 +32,56 @@ body {
   z-index: 1000;
 }
 
-#control-buttons, #map, #llm-chat {
+#control-buttons,
+#map,
+#llm-chat {
   margin: 1rem;
 }
 
 button {
   border-radius: 8px;
-  border: 1px solid transparent;
+  border: none;
   padding: 0.6em 1.2em;
   font-size: 1em;
-  font-weight: 500;
+  font-weight: 600;
   font-family: inherit;
   background-color: #1a1a1a;
+  color: #ddd;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: background-color 0.2s, border 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 button:hover {
-  border-color: #127803;
+  background-color: #333;
 }
 
-button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+.btn-primary {
+  background: #19c37d;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #17a96d;
+}
+
+.btn-danger {
+  background: #ff4d4d;
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background: #d83434;
 }
 
 #control-buttons div {
   display: flex;
   justify-content: center;
-  gap: 1em;
+  gap: 1rem;
   flex-direction: column;
 }
 
@@ -76,24 +97,39 @@ button:focus-visible {
 }
 
 #clear-selection {
-  background-color: #ff3e3e;
-  margin-top: 0.5rem;
+  background-color: #ff4d4d;
 }
 
 #clear-selection:hover {
-  border-color: #ff0000;
+  background-color: #d83434;
+}
+
+#sidebar {
+  background: #2b2b2b;
+  border: 1px solid #393939;
+  border-radius: 12px;
+  padding: 24px 20px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  margin-left: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 #llm-chat {
+  background: #2e2e2e;
+  border: 1px solid #3d3d3d;
+  border-radius: 10px;
+  padding: 16px;
   width: 500px;
   min-width: 320px;
   height: 400px;
-  border: 1px solid #ccc;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   margin-left: 1em;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
 #chat-history {
@@ -107,8 +143,7 @@ button:focus-visible {
 
 #llm-chat-form {
   display: flex;
-  padding: 10px;
-  border-top: 1px solid #ccc;
+  padding: 10px 0 0 0;
 }
 
 #llm-chat-input {
@@ -120,119 +155,12 @@ button:focus-visible {
   padding: 5px 10px;
 }
 
-#toggle-tree {
-  position: absolute;
-  top: 12rem;
-  left: 1rem;
-  z-index: 1002;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  color: rgba(255,255,255,0.87);
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-#toggle-tree:hover {
-  border-color: #127803;
-}
-
-#control-buttons {
-  margin: 1rem;
-}
-#sidebar {
-  margin-left: 220px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-#layer-tree {
-  position: absolute;
-  top: 16rem;
-  left: 1rem;
-  width: 200px;
-  max-height: 400px;
-  overflow-y: auto;
-  background-color: #1a1a1a;
-  border: 1px solid #555;
-  padding: 0.5em;
-  color: #fff;
-  z-index: 1001;
-}
-
-#layer-tree.hidden {
-  display: none !important;
-}
-
-#layer-tree ul {
-  list-style: none;
-  margin: 0;
-  padding: 0 ;
-}
-#layer-tree li.folder > .folder-label {
-  cursor: pointer;
-  user-select: none;
-  display: flex;
-  align-items: left;
-}
-
-#layer-tree li.folder > .folder-label,
-#layer-tree li.file   > .file-label {
-  position: relative;
-  padding-bottom: 0.5rem;
-  padding-top: 0.5rem;
-  padding-left: 1.2em;
-}
-
-#layer-tree li.folder > .folder-label::before {
-  content: "▶";
-  position: absolute;
-  padding-right: 0.5rem;
-  right: 0;
-  transition: transform 0.2s;
-  color: rgba(255, 255, 255, 0.6);
-}
-#layer-tree li.folder.open > .folder-label::before {
-  transform: rotate(90deg);
-}
-
-#layer-tree li.folder > ul.nested {
-  display: none;
-  margin-left: 1.2em;
-}
-#layer-tree li.folder.open > ul.nested {
-  display: block;
-}
-
-#layer-tree li.file > .file-label {
-  cursor: pointer;
-  user-select: none;
-  display: flex;
-  align-items: left;
-  padding-left: 2em;
-}
-
-#layer-tree .icon {
-  margin-right: 0.3em;
-}
-
-#layer-tree .selected-label {
-  background-color: rgba(120, 120, 120, 0.2);
-  border-radius: 4px;
-}
-
-.tile-button {
-  margin: 0.2rem;
-  padding: 0.5rem 1rem;
-  border: 2px solid #888;
-  border-radius: 5px;
-  background-color: white;
-  cursor: pointer;
-  font-size: 1rem;
+#tile-picker {
+  background: #2e2e2e;
+  border: 1px solid #3d3d3d;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
 .tile-category {
@@ -245,15 +173,22 @@ button:focus-visible {
 .tile-button {
   padding: 8px;
   font-size: 16px;
-  border: 1px solid #ccc;
+  border: 1px solid #4a4a4a;
   border-radius: 6px;
-  background: #f5f5f5;
+  background: #3b3b3b;
+  color: #ccc;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 
 .tile-button:hover {
-  background: #e0e0e0;
+  background: #4d4d4d;
+  transform: scale(1.15);
+  box-shadow: 0 0 8px rgba(25, 195, 125, 0.6);
+}
+
+.tile-button.selected {
+  outline: 2px solid #19c37d;
 }
 
 details summary {
@@ -262,15 +197,52 @@ details summary {
   padding: 6px 0;
 }
 
-/* context menu */
+#layer-tree {
+  position: absolute;
+  top: 16rem;
+  left: 1rem;
+  width: 200px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: #2e2e2e;
+  border: 1px solid #3d3d3d;
+  border-radius: 10px;
+  padding: 0.5em;
+  color: #fff;
+  z-index: 1001;
+}
+
+#layer-tree.hidden {
+  display: none !important;
+}
+
+#layer-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#layer-tree li.folder > .folder-label,
+#layer-tree li.file > .file-label {
+  position: relative;
+  padding: 0.5rem 0 0.5rem 1.2em;
+  cursor: pointer;
+  user-select: none;
+}
+
+#layer-tree .selected-label {
+  background-color: rgba(0, 140, 255, 0.1);
+  border-radius: 4px;
+}
+
 #layer-context-menu {
   position: absolute;
-  background-color:  rgba(26, 26, 26, 0.95);
+  background-color: rgba(50, 50, 50, 0.95);
   backdrop-filter: blur(4px);
   border: 1px solid #555;
   border-radius: 8px;
   padding: 0.25em 0;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
   z-index: 2000;
   display: none;
   min-width: 140px;
@@ -286,12 +258,11 @@ details summary {
   padding: 0.5em 1.2em;
   font-size: 0.95em;
   cursor: pointer;
-  color: rgba(255,255,255,0.9);
+  color: #fff;
 }
 
 #layer-context-menu li:hover {
-  background-color:  #868d8593;
-  color: #ffffff;
+  background-color: #666;
 }
 
 .modal {
@@ -300,86 +271,45 @@ details summary {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 3000;
 }
+
 .modal.hidden {
   display: none;
 }
-/* modal box */
+
 .modal-content {
-  background: #1a1a1a;
-  padding: 1em 1.5em;
-  border-radius: 8px;
+  background: #2e2e2e;
+  border: 1px solid #3d3d3d;
+  border-radius: 12px;
+  padding: 1.2em 1.5em;
   color: #fff;
-  max-width: 300px;
+  max-width: 320px;
   text-align: center;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65);
 }
+
 .modal-buttons {
   margin-top: 1em;
   display: flex;
   flex-direction: column;
   gap: 0.5em;
 }
+
 .modal-buttons button {
   width: 100%;
+  background: #3b3b3b;
+  color: #ccc;
 }
 
-#delete-modal .modal-content {
-  background-color: #1a1a1a;
-  border: 1px solid #127803;
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.7);
-  padding: 1.2em 1.5em;
-  max-width: 320px;
-}
-
-#delete-modal p {
-  margin: 0;
-  margin-bottom: 1em;
-  font-size: 1em;
-  color: rgba(255,255,255,0.9);
-  text-align: center;
-}
-
-#delete-modal .modal-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5em;
-}
-
-#delete-modal .modal-buttons button {
-  background-color: #242424;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 0.6em;
-  font-size: 1em;
-  font-family: inherit;
-  color: rgba(255,255,255,0.9);
-  cursor: pointer;
-  transition: border-color 0.25s, background-color 0.25s;
-}
-
-#delete-modal .modal-buttons button:hover {
-  border-color: #127803;
-  background-color: #1e1e1e;
-}
-
-#btn-delete-only {
-  color: #127803;
-}
-
-#btn-delete-with-assets {
-  color: #127803;
+.modal-buttons button:hover {
+  background: #4d4d4d;
 }
 
 #btn-delete-cancel {
-  color: #ff3e3e;
-}
-
-#delete-modal .hidden {
-  display: none !important;
+  color: #ff4d4d;
 }
