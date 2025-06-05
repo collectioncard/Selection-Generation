@@ -1,5 +1,3 @@
-// src/phaser/featureGenerators/houseGenerator.ts
-
 import { FeatureGenerator, completedSection, generatorInput } from "./GeneratorInterface";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
@@ -9,12 +7,7 @@ const MIN_HOUSE_WIDTH = 3;
 const MIN_HOUSE_HEIGHT = 3;
 const BORDER_PADDING = 1;
 
-/**
- * Maps each tile‐ID to a human‐readable description.
- * (We don’t actually need these strings at runtime—we only really care about the numeric IDs.)
- */
 const HOUSE_TILES: Record<number, string> = {
-  // Roof (grey)
   48: "grey roof top-left",
   49: "grey roof top-middle",
   50: "grey roof top-right",
@@ -24,7 +17,6 @@ const HOUSE_TILES: Record<number, string> = {
   62: "grey roof bottom-right",
   63: "grey roof pointed",
 
-  // Roof (red)
   52: "red roof top-left",
   53: "red roof top-middle",
   54: "red roof top-right",
@@ -34,7 +26,6 @@ const HOUSE_TILES: Record<number, string> = {
   66: "red roof bottom-right",
   67: "red roof pointed",
 
-  // Brown‐house walls/windows/doors
   72: "brown wall left",
   73: "brown wall middle",
   74: "brown entrance (no door)",
@@ -44,7 +35,6 @@ const HOUSE_TILES: Record<number, string> = {
   86: "brown double door left",
   87: "brown double door right",
 
-  // Grey‐house walls/windows/doors
   76: "grey wall left",
   77: "grey wall middle",
   78: "grey entrance (no door)",

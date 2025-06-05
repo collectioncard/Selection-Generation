@@ -1,7 +1,7 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 
 import { BaseMessage, ToolMessage, SystemMessage } from "@langchain/core/messages";
-import { tool } from "@langchain/core/tools";
+// import { tool } from "@langchain/core/tools";
 
 const tilestuff = await fetch('../phaserAssets/Assets/TileDatabase.json')
   .then(response => response.json());
