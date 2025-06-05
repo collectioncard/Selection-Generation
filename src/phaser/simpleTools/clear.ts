@@ -20,8 +20,13 @@ export class boxClear implements FeatureGenerator {
       }
       let selection = scene.getSelection()
       console.log(selection)
-      scene.putFeatureAtSelection(this.generate(selection, [x, y, width, height]), false, true);
-      return `cleared at: ${[x,y]} with width: ${width} and height: ${height}`;
+      try {
+        await scene.putFeatureAtSelection(this.generate(selection, [x, y, width, height]), false, true);
+        return `cleared at: ${[x,y]} with width: ${width} and height: ${height}`;
+      } catch (e) {
+        console.error("putFeatureAtSelection failed:", e);
+        return `Failed to clear`;
+      }
     },
     {
       name: "ClearBox",

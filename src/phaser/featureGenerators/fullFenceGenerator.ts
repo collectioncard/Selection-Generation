@@ -41,8 +41,14 @@ export class FullFenceGenerator implements FeatureGenerator {
       }
 
       const selection = scene.getSelection();
-      scene.putFeatureAtSelection(this.generate(selection, args));
-      return "Fence added successfully. It starts at" + fenceX + "," + fenceY + ". It has a with width: " + width + " and height: " + height;
+
+      try {
+        await scene.putFeatureAtSelection(this.generate(selection, args));
+        return "Fence added successfully. It starts at" + fenceX + "," + fenceY + ". It has a with width: " + width + " and height: " + height;
+      } catch (e) {
+        console.error("putFeatureAtSelection failed:", e);
+        return `Failed to place fence`;
+      }
     },
     {
       name: "fence",

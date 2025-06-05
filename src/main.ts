@@ -12,7 +12,7 @@ import { TilePlacer } from './phaser/simpleTools/placeTile.ts';
 import { FullUndo } from './phaser/simpleTools/undo.ts';
 import { boxPlacer } from './phaser/simpleTools/placeBox.ts';
 import { boxClear } from './phaser/simpleTools/clear.ts';
-import { NameLayerTool } from './phaser/simpleTools/layerTools.ts';
+import { ListLayersTool, NameLayerTool } from './phaser/simpleTools/layerTools.ts';
 // import { MoveLayerTool } from './phaser/simpleTools/layerTools.ts';
 import { SelectLayerTool } from './phaser/simpleTools/layerTools.ts';
 import { RenameLayerTool } from './phaser/simpleTools/layerTools.ts';
@@ -53,6 +53,7 @@ const generators = {
     select_layer: new SelectLayerTool(getScene),
     rename_layer: new RenameLayerTool(getScene),
     delete_layer: new DeleteLayerTool(getScene),
+    list_layers: new ListLayersTool(getScene),
 }
 
 let draggedElement: HTMLElement | null = null;

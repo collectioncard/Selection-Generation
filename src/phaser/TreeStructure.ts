@@ -1,3 +1,5 @@
+import { BaseMessage } from "@langchain/core/messages";
+
 class Node {
     Name: string;
     Coordinates: [number[], number[]];
@@ -19,6 +21,73 @@ export class Tree {
     constructor(Name: string = "", Coordinates: [number[], number[]] = [[],[]], Width: number = 0, Height: number = 0) {
         this.Root = new Node(Name, Coordinates, Width, Height);
     }
+
+    static async createLayerName(
+        chatHistory: BaseMessage[],
+        Width: number, 
+        Height: number
+      ): Promise<string> {
+        const apiKey: string = import.meta.env.VITE_LLM_API_KEY;
+        const modelName: string = import.meta.env.VITE_LLM_MODEL_NAME;
+        
+        console.log("API Key available:", !!apiKey);
+        console.log("Model Name:", modelName);
+        
+        // (1) Pull the latest message(s) from the user
+        const recentUserMessages = chatHistory
+          .filter(msg => msg._getType() === "human")
+          .slice(-1)
+          .map(msg => msg.content)
+          .join(" ");
+      
+        console.log("Recent User Messages:", recentUserMessages);
+        const prompt = `Given this user instruction: "${recentUserMessages}", suggest a short, creative name for a tile-based layer that spans ${Width} tiles wide and ${Height} tiles tall. Provide only one name.`;
+        
+        // console.log("Sending prompt to Gemini:", prompt);
+      
+        // (2) Gemini API call - Updated endpoint and request format
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+        const body = {
+          contents: [{
+            role: "user",
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 100,
+          }
+        };
+      
+        try {
+          console.log("Making API call to Gemini...");
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json",
+              "x-goog-api-key": apiKey
+            },
+            body: JSON.stringify(body),
+          });
+      
+          const data = await response.json();
+          console.log("Gemini API Response:", data);
+      
+          if (!response.ok || !data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            throw new Error(JSON.stringify(data));
+          }
+      
+          const layerName = data.candidates[0].content.parts[0].text.trim();
+          console.log("Generated layer name:", layerName);
+          return layerName;
+        } catch (error) {
+          console.error("Gemini API Error:", error);
+          return `Unnamed Area (${Width}x${Height})`;
+        }
+    }
+      
 
     // function: add()
     // parameters: 

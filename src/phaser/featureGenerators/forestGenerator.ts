@@ -61,8 +61,13 @@ export class ForestGenerator implements FeatureGenerator {
       //   );
       // }
 
-      scene.putFeatureAtSelection(this.generate(selection, args));
-      return "Forest added.";
+      try {
+        await scene.putFeatureAtSelection(this.generate(selection, args));
+        return `Forest added`;
+      } catch (e) {
+        console.error("putFeatureAtSelection failed:", e);
+        return `Forest not added`;
+      }
     },
     {
       name: "forest",
