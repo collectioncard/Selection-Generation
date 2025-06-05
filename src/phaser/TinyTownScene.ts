@@ -260,21 +260,7 @@ export class TinyTownScene extends Phaser.Scene {
             }
         });
 
-        //Feature generator demo -- Erase if you don't need this
-        // 1. Create a generatorInput obj with a 2D array the size of the feature you want. (min is 5x5 for most I think?)
-        const houseInput: generatorInput = {
-            grid: new Array(5).fill(-1).map(() => new Array(5).fill(-1)),
-            width: 5,
-            height: 5
-        };
         
-        const houseGen = new HouseGenerator(() => this);
-
-        // 2. Pass it to the generator you want. House in this case.
-        const generatedData: completedSection = houseGen.generate(houseInput);
-        
-        // 3. Put that somewhere in the feature layer. 1,1 for this example.
-        this.featureLayer.putTilesAt(generatedData.grid, 1, 1);
       
         //highlight box
         this.highlightBox = this.add.graphics();
@@ -1222,6 +1208,52 @@ export class TinyTownScene extends Phaser.Scene {
     setSelectedTileId(id: number) {
         this.selectedTileId = id;
         console.log("Selected tile ID:", id);
+    }
+    //TODO: THIS IS STUPID, FIX THIS LATER - Thomas
+    //flatten all of the layers into a single array of tile IDs
+    public GetFlattenedTileMap(): number[][] {
+        const flattened: number[][] = [];
+        for (let y = 0; y < this.CANVAS_HEIGHT; y++) {
+            const row: number[] = [];
+            for (let x = 0; x < this.CANVAS_WIDTH; x++) {
+                const tile = this.featureLayer.getTileAt(x, y);
+                row.push(tile ? tile.index : -1);
+            }
+            flattened.push(row);
+        }
+        return flattened;
+    }
+
+    public loadMapFromJSON(mapData: number[][]): void {
+        if (this.featureLayer) {
+            this.featureLayer.forEachTile(tile => {
+                this.featureLayer.removeTileAt(tile.x, tile.y);
+            });
+        }
+        
+        this.namedLayers.forEach((info, name) => {
+            info.layer.destroy(true);
+        });
+        this.namedLayers.clear();
+        
+        this.layerTree = new Tree("Root", [[0, 0], [this.CANVAS_WIDTH, this.CANVAS_HEIGHT]], this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
+        
+        this.clearSelection();
+        this.clearLayerHighlights();
+        
+        for (let y = 0; y < Math.min(mapData.length, this.CANVAS_HEIGHT); y++) {
+            for (let x = 0; x < Math.min(mapData[y].length, this.CANVAS_WIDTH); x++) {
+                const tileId = mapData[y][x];
+                if (tileId !== -1) {
+                    this.featureLayer.putTileAt(tileId, x, y);
+                }
+            }
+        }
+        
+        console.log('Map loaded from JSON data');
+        
+        this.resetView();
+        
     }
 }
 

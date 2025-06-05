@@ -83,3 +83,9 @@ export async function sendSystemMessage(message: string): Promise<void> {
     }
 }
 
+export function clearChatHistory(): void {
+    chatHistoryList.innerHTML = '';
+    chatHistory.length = 1; // Clear the chat history array
+    console.log(chatHistory);
+}
+

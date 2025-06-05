@@ -1,6 +1,7 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 
 import { BaseMessage, ToolMessage, SystemMessage } from "@langchain/core/messages";
+import {clearChatHistory} from "./chatbox.ts";
 
 const tilestuff = await fetch('../phaserAssets/Assets/TileDatabase.json')
   .then(response => response.json());
@@ -76,9 +77,6 @@ let toolsByName : any = {};
 let llmWithTools : any= llm.bindTools(tools);
 
 
-// Removed example add tool, if debugging, it can be found at commit e47c980
-// https://github.com/collectioncard/Selection-Generation/blob/b78f4e48726f6da031606f6653960f227da39373/src/modelChat/apiConnector.ts
-
 export function registerTool(tool: any){
     tools.push(tool);
     toolsByName[tool.name] = tool;
@@ -101,6 +99,11 @@ export async function initilizeLLM(chatMessageHistory: BaseMessage[]): Promise<v
 export async function getChatResponse(chatMessageHistory: BaseMessage[]): Promise<string> {
   try {
     let response = await llmWithTools.invoke(chatMessageHistory);
+    //TODO: Look at this later
+    if (!response) {
+      console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+      throw new Error("No response from model");
+    }
     chatMessageHistory.push(response); // This is required for tools to work
 
     // Iterate through all tool calls
