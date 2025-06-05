@@ -35,6 +35,7 @@ const tilestuff = await fetch('../phaserAssets/Assets/TileDatabase.json')
       '4.  **Tile Data & Placement Rules:**\n' +
       '    *   **Available Tiles:** The entire list of tiles and their ID numbers is: \n' + JSON.stringify(tilestuff) +
       '    *   **Placement Within Selection:** When placing objects (e.g., houses, trees), ensure they fit *entirely* within the specified or current selection boundaries. This includes their full width and height. No part of an object should extend beyond the selection.\n' +
+      '    *   **CLAMPING BEHAVIOR:** If a requested width/height exceeds the usable area (selection minus 1-tile padding on each side), automatically clamp to the largest valid dimensions rather than raising an error. If the *minimum* size (3×3) cannot fit, return `"Error: Selection is too small for a 3×3"`.\n' +
       '\n' +
       '5.  **Interaction Style:**\n' +
       '    *   Be engaging, helpful, and enthusiastic. Aim for a friendly, confident expert persona.\n' +
