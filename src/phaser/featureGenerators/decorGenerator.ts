@@ -25,32 +25,43 @@ export class DecorGenerator implements FeatureGenerator {
         this.sceneGetter = sceneGetter;
     }
 
+static DecorArgsSchema = z.object({
+        chance: z.number().min(0).max(1), // unfortnatly the .default() parameter does not seem to be supported.
+        x: z.number().min(0).max(40).optional(),
+        y: z.number().min(0).max(25).optional(),
+        width: z.number().min(1).max(50).optional(),
+        height: z.number().min(1).max(50).optional(),
+      });
+
   toolCall = tool(
-    async ({chance}) => {
-      console.log("Adding decor with chance: ", chance);
+    async (args: z.infer<typeof DecorGenerator.DecorArgsSchema>) => {
+      console.log("Adding decor with args: ", args);
       let scene = this.sceneGetter();
       if(scene == null){
         console.log("getSceneFailed")
         return "Tool Failed, no reference to scene."
       }
       let selection = scene.getSelection()
-      scene.putFeatureAtSelection(this.generate(selection, []));
-      return `${chance}`;
+      scene.putFeatureAtSelection(this.generate(selection, args));
+      return `${args}`;
     },
     {
       name: "decor",
-      schema: z.object({
-        chance: z.number().min(0).max(1), // unfortnatly the .default() parameter does not seem to be supported.
-      }),
-      description: "Adds decor to the map with a given chance (default chance of 0.03).",
+      schema: DecorGenerator.DecorArgsSchema,
+      description: 
+        "Adds decor to the map with a given chance (default chance of 0.03). Optional args: x, y, width, height",
     }
   );
 
   generate(mapSection: generatorInput, _args?: any): completedSection {
     let grid: number[][] = mapSection.grid;
 
-    for (let y = 0; y < mapSection.height; y++) {
-      for (let x = 0; x < mapSection.width; x++) {
+    const width = _args?.width ?? mapSection.width;
+    const height = _args?.height ?? mapSection.height;
+    const xstrt = _args?.x ?? 0;
+    const ystrt = _args?.y ?? 0;
+    for (let y = ystrt; y < height+ystrt; y++) {
+      for (let x = xstrt; x < width+xstrt; x++) {
         if (Math.random() < DECOR_CHANCE) {
           const decorTile = Phaser.Math.RND.pick(Object.keys(DECOR_TILES));
           grid[y][x] = Number(decorTile);
@@ -60,7 +71,7 @@ export class DecorGenerator implements FeatureGenerator {
 
     return {
       name: 'Decor',
-      description: 'Just some random stuff',
+      description: 'Just some random stuff in the area specified',
       grid: grid,
       points_of_interest: new Map(),
     };
