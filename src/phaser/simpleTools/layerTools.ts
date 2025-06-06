@@ -119,3 +119,27 @@ export class RenameLayerTool {
     }
   );
 }
+
+export class ListLayersTool {
+  constructor(private getScene: () => TinyTownScene) {}
+
+  toolCall = tool(
+    async () => {
+      const scene = this.getScene();
+      const layers = scene.namedLayers;
+      let output = "Layers in the scene:\n";
+      
+      for (const [name, info] of layers) {
+        const { bounds } = info;
+        output += `- ${name} (${bounds.width}x${bounds.height} at ${bounds.x},${bounds.y})\n`;
+      }
+      
+      return output;
+    },
+    {
+      name: "list_layers",
+      schema: z.object({}),
+      description: "List all layers in the scene with their dimensions and positions"
+    }
+  );
+}

@@ -111,7 +111,7 @@ export class TinyTownScene extends Phaser.Scene {
     private layerTree = new Tree("Root", [[0, 0], [this.CANVAS_WIDTH, this.CANVAS_HEIGHT]], this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
     
     // Named layers storage: name → bounds + tile coordinates
-    private namedLayers = new Map<
+    public namedLayers = new Map<
         string,
         {
             layer: Phaser.Tilemaps.TilemapLayer,
