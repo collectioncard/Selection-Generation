@@ -990,6 +990,28 @@ export class TinyTownScene extends Phaser.Scene {
                     continue;
                 }
 
+                let placedNamedTile = false;
+                if (newTileIndex >= 0){
+                    for(const info of this.namedLayers.values()) {
+                        const b = info.bounds;
+                        if (placeX >= b.x && placeX < b.x + b.width && placeY >= b.y && placeY < b.y + b.height) {
+                            const localX = placeX - b.x;
+                            const localY = placeY - b.y;
+                            info.layer.removeTileAt(localX, localY);
+
+                            info.layer.putTileAt(newTileIndex, localX, localY);
+
+                            changed.push({ x: placeX, y: placeY });
+                            placedNamedTile = true;
+                            break; // Only one named layer can be placed at a time
+                        }
+                    }
+                }
+
+                if(placedNamedTile){
+                    continue;
+                }
+
                 const currentTile = this.featureLayer.getTileAt(placeX, placeY);
                 const currentTileIndex = currentTile ? currentTile.index : -1;
 
