@@ -33,8 +33,13 @@ export class PartialFenceGenerator implements FeatureGenerator {
                 return "Tool Failed, no reference to scene.";
             }
             let selection = scene.getSelection()
-            scene.putFeatureAtSelection(this.generate(selection, []));
-            return `Partial fence added`;
+            try {
+                await scene.putFeatureAtSelection(this.generate(selection, []));
+                return `Partial fence added`;
+              } catch (e) {
+                console.error("putFeatureAtSelection failed:", e);
+                return `Failed to place partial fence`;
+              }
         },
         {
             name: "broken_fence",

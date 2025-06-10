@@ -19,8 +19,13 @@ export class boxPlacer implements FeatureGenerator {
         return "Tool Failed, no reference to scene."
       }
       let selection = scene.getSelection()
-      scene.putFeatureAtSelection(this.generate(selection, [x, y, width, height, tileID, filled]));
-      return `placed box of ${tileID} at: ${[x,y]} with width: ${width} and height: ${height}`;
+      try {
+        await scene.putFeatureAtSelection(this.generate(selection, [x, y, width, height, tileID, filled]));
+        return `placed box of ${tileID} at: ${[x,y]} with width: ${width} and height: ${height}`;
+      } catch (e) {
+        console.error("putFeatureAtSelection failed:", e);
+        return `Failed to place box`;
+      }
     },
     {
       name: "box",

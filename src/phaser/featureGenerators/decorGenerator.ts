@@ -42,8 +42,13 @@ static DecorArgsSchema = z.object({
         return "Tool Failed, no reference to scene."
       }
       let selection = scene.getSelection()
-      scene.putFeatureAtSelection(this.generate(selection, args));
-      return `${args}`;
+      try {
+        await scene.putFeatureAtSelection(this.generate(selection, []));
+        return `Decor placed with chance ${chance}`;
+      } catch (e) {
+        console.error("putFeatureAtSelection failed:", e);
+        return `Failed to place decor: ${e}`;
+      }
     },
     {
       name: "decor",

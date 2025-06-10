@@ -5,7 +5,7 @@ const chatHistoryList: Element = document.querySelector('#chat-history')!;
 const chatInputField: HTMLInputElement = document.querySelector('#llm-chat-input')!;
 const chatSubmitButton: HTMLButtonElement = document.querySelector('#llm-chat-submit')!;
 
-const chatHistory: BaseMessage[] = [];
+export const chatHistory: BaseMessage[] = [];
 
 initilizeLLM(chatHistory).then(() => {console.log(chatHistory)});
 

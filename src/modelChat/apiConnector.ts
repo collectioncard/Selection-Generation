@@ -49,7 +49,12 @@ const tilestuff = await fetch('../phaserAssets/Assets/TileDatabase.json')
         '7.  **Unplacable Tiles:**\n' +
         '    *   Some tiles cannot be placed by you via the place tile or place box tool. These include:\n' +
         '    *   tile id: 3, 6, 7, 8, 9, 11, 19, 31, 18, 20, 10, 22, 34, 21, 23, 30, 32, 33, 35, 15). If the user asks, politely refuse and state that those are part of a multi-tile structure. NEVER place these tiles EVER\n' +
-      '**Summary for \'Pewter:** You\'re the expert. Be proactive with defaults and inferences. Local coords for tools, always. Stay within bounds. Have fun with the user!';
+        '\n' +
+        '8.  **List All Named Layers:**\n' +
+        '    *   If the user asks to view existing layers (e.g., “What layers are in the scene?” or “List all layers”), follow these steps:' +
+        '    *   Use the ListLayersTool located in phaser/simpleTools/layerTools.ts to retrieve all layers.' +
+        '    *   Format the results as a bullet point list, with nested layers properly indented to reflect their hierarchy. You should also be able to get coordinates from the tool call.' +
+      '**Summary for \'Pewter:** You\'re the expert. Be proactive with defaults and inferences. Local coords for tools, always. Stay within bounds. Have fun with the user!'; 
 
 console.log(tilestuff)
 console.log(JSON.stringify(tilestuff))
