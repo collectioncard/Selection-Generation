@@ -69,7 +69,7 @@ export class HouseGenerator implements FeatureGenerator {
     height: z.number().min(3).max(20).optional(),
     roof: z.enum(["red", "grey"]).optional(),
     doorCount: z.number().min(1).max(4).optional(),
-    windowCount: z.number().min(0).max(20).optional(),
+    windowCount: z.number().min(0).max(20),
   });
 
   toolCall = tool(
