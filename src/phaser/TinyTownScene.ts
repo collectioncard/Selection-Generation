@@ -1234,15 +1234,54 @@ export class TinyTownScene extends Phaser.Scene {
     //TODO: THIS IS STUPID, FIX THIS LATER - Thomas
     //flatten all of the layers into a single array of tile IDs
     public GetFlattenedTileMap(): number[][] {
-        const flattened: number[][] = [];
-        for (let y = 0; y < this.CANVAS_HEIGHT; y++) {
-            const row: number[] = [];
-            for (let x = 0; x < this.CANVAS_WIDTH; x++) {
-                const tile = this.featureLayer.getTileAt(x, y);
-                row.push(tile ? tile.index : -1);
+        const flattened: number[][] = Array(this.CANVAS_HEIGHT)
+            .fill(null)
+            .map(() => Array(this.CANVAS_WIDTH).fill(-1));
+        
+        if (this.grassLayer) {
+            for (let y = 0; y < this.CANVAS_HEIGHT; y++) {
+                for (let x = 0; x < this.CANVAS_WIDTH; x++) {
+                    const tile = this.grassLayer.getTileAt(x, y);
+                    if (tile && tile.index !== -1) {
+                        flattened[y][x] = tile.index;
+                    }
+                }
             }
-            flattened.push(row);
         }
+        
+        if (this.featureLayer) {
+            for (let y = 0; y < this.CANVAS_HEIGHT; y++) {
+                for (let x = 0; x < this.CANVAS_WIDTH; x++) {
+                    const tile = this.featureLayer.getTileAt(x, y);
+                    if (tile && tile.index !== -1) {
+                        flattened[y][x] = tile.index;
+                    }
+                }
+            }
+        }
+        
+        for (const [name, info] of this.namedLayers.entries()) {
+            const { x: layerX, y: layerY, width, height } = info.bounds;
+            
+            
+            for (let localY = 0; localY < height; localY++) {
+                for (let localX = 0; localX < width; localX++) {
+                    const worldX = layerX + localX;
+                    const worldY = layerY + localY;
+                    
+                    if (worldX < 0 || worldX >= this.CANVAS_WIDTH || 
+                        worldY < 0 || worldY >= this.CANVAS_HEIGHT) {
+                        continue;
+                    }
+                    
+                    const tile = info.layer.getTileAt(localX, localY);
+                    if (tile && tile.index !== -1) {
+                        flattened[worldY][worldX] = tile.index;
+                    }
+                }
+            }
+        }
+        
         return flattened;
     }
 
