@@ -24,7 +24,11 @@ document.querySelector('#llm-chat-form')!.addEventListener('submit', async funct
     
     try {
         botResponseEntry = await getChatResponse(chatHistory);
-        addChatMessage(new AIMessage(botResponseEntry));
+        if(botResponseEntry.startsWith("Error:")){
+            addChatMessage(new AIMessage("Oops, there was a problem" + botResponseEntry.replace(/^Error:\s*/, "")));
+        } else {
+            addChatMessage(new AIMessage(botResponseEntry));
+        }
     }catch (exception){
         const errorMessage = exception instanceof Error ? exception.message : "Unknown error";
         addChatMessage(new AIMessage("Error: " + errorMessage));
@@ -71,13 +75,18 @@ export async function sendSystemMessage(message: string): Promise<void> {
     const systemMessage = new HumanMessage(message);
 
     document.dispatchEvent(new CustomEvent("chatResponseStart"));
-    let botResponseEntry: string;
-    try {
-        botResponseEntry = await getChatResponse([...chatHistory, systemMessage]);
-        addChatMessage(new AIMessage(botResponseEntry));
+
+    try{
+        const botResponseEntry = await getChatResponse([...chatHistory, systemMessage]);
+
+        if(botResponseEntry.startsWith("Error:")){
+            addChatMessage(new AIMessage("Oops, there was a problem: " + botResponseEntry.replace(/^Error:\s*/, "")));
+        } else {
+            addChatMessage(new AIMessage(botResponseEntry));
+        }
     } catch (exception) {
         const errorMessage = exception instanceof Error ? exception.message : "Unknown error";
-        addChatMessage(new AIMessage("Error: " + errorMessage));
+        addChatMessage(new AIMessage("Error: " + errorMessage));    
     } finally {
         document.dispatchEvent(new CustomEvent("chatResponseEnd"));
     }
