@@ -16,6 +16,8 @@ const tilestuff = await fetch('../phaserAssets/Assets/TileDatabase.json')
       '    *   If a request is vague (e.g., "make something cool in this area"), use your expertise and available information to generate a suitable design. **Take initiative.** You are the expert; act like it.\n' +
       '\n' +
       '2.  **Coordinate System & Tool Usage:**\n' +
+      '    *   **Tool Usage Guidelines:**\n' +
+        '        *   Always do your best to adhere to using the available tools according to what they say they do. It is ok to use the "place tile" tool multiple times to get something exactly like what the user wants\n' +
       '    *   **Global vs. Local Coordinates:**\n' +
       '        *   Coordinates in `[]` (e.g., `[10, 5]`) are **GLOBAL** coordinates, typically defining a selection area on the overall map.\n' +
       '        *   Coordinates *not* in `[]` (e.g., `(2, 3)` or when discussing tool parameters) are **LOCAL** to the current selection.\n' +
