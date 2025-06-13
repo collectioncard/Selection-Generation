@@ -998,47 +998,81 @@ export class TinyTownScene extends Phaser.Scene {
                     continue;
                 }
 
-                let placedNamedTile = false;
-                if (newTileIndex >= 0){
-                    for(const info of this.namedLayers.values()) {
-                        const b = info.bounds;
-                        if (placeX >= b.x && placeX < b.x + b.width && placeY >= b.y && placeY < b.y + b.height) {
-                            const localX = placeX - b.x;
-                            const localY = placeY - b.y;
-                            info.layer.removeTileAt(localX, localY);
-
-                            info.layer.putTileAt(newTileIndex, localX, localY);
-
-                            changed.push({ x: placeX, y: placeY });
-                            placedNamedTile = true;
-                            break; // Only one named layer can be placed at a time
+                // Check if we should place in active layer first
+                let placedInLayer = false;
+                
+                if (this.activeLayerBounds && newTileIndex >= 0) {
+                    const b = this.activeLayerBounds;
+                    if (placeX >= b.x && placeX < b.x + b.width && placeY >= b.y && placeY < b.y + b.height) {
+                        // Find the named layer that matches the active layer bounds
+                        for (const [name, info] of this.namedLayers.entries()) {
+                            if (info.bounds.x === b.x && 
+                                info.bounds.y === b.y && 
+                                info.bounds.width === b.width && 
+                                info.bounds.height === b.height) {
+                                const localX = placeX - b.x;
+                                const localY = placeY - b.y;
+                                // Remove any existing tile in this position
+                                info.layer.removeTileAt(localX, localY);
+                                // Place the new tile
+                                info.layer.putTileAt(newTileIndex, localX, localY);
+                                changed.push({ x: placeX, y: placeY });
+                                placedInLayer = true;
+                                break;
+                            }
                         }
                     }
                 }
 
-                if(placedNamedTile){
+                // If already placed in active layer, continue to next tile
+                if (placedInLayer) {
                     continue;
                 }
 
-                const currentTile = this.featureLayer.getTileAt(placeX, placeY);
-                const currentTileIndex = currentTile ? currentTile.index : -1;
+                // Try to place in any named layer that contains this position
+                if (newTileIndex >= 0) {
+                    for (const info of this.namedLayers.values()) {
+                        const b = info.bounds;
+                        if (placeX >= b.x && placeX < b.x + b.width && placeY >= b.y && placeY < b.y + b.height) {
+                            const localX = placeX - b.x;
+                            const localY = placeY - b.y;
+                            const existingTile = info.layer.getTileAt(localX, localY);
+                            const existingTileIndex = existingTile ? existingTile.index : -1;
+                            
+                            if (existingTileIndex === -1 || this.allowOverwriting) {
+                                const newPriority = this.getTilePriority(newTileIndex);
+                                const currentPriority = this.getTilePriority(existingTileIndex);
+                                
+                                if (newPriority >= currentPriority || undoing) {
+                                    info.layer.putTileAt(newTileIndex, localX, localY);
+                                    changed.push({ x: placeX, y: placeY });
+                                    placedInLayer = true;
+                                    break; // Only place in one named layer
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // If already placed in a named layer, continue to next tile
+                if (placedInLayer) {
+                    continue;
+                }
+
+                // If not placed in any named layer, try the feature layer as fallback
+                // get from flattened layers to check what's already there
+                const currentTile = this.GetFlattenedTileMap()[placeY]?.[placeX];
+                const currentTileIndex = currentTile !== undefined ? currentTile : -1;
 
                 if (this.allowOverwriting) {
                     const newPriority = this.getTilePriority(newTileIndex);
                     const currentPriority = this.getTilePriority(currentTileIndex);
-                    //console.log("doing stuff new: ", newPriority, "cur", currentPriority)
 
-                    // // Explicit Check for fence and house no longer needed
-                    // if (newPriority === TILE_PRIORITY.FENCE && currentPriority === TILE_PRIORITY.HOUSE) {
-                    //      continue; // Skip to the next tile in the loop
-                    // }
-
-                    // console.log(`Check (${placeX}, ${placeY}): New P${newPriority} (ID ${newTileIndex}) vs Current P${currentPriority} (ID ${currentTileIndex})`);
                     if (newPriority >= currentPriority || undoing) {
-                         // console.log(`   Placing: New P${newPriority} >= Current P${currentPriority} at (${placeX}, ${placeY})`);
                         this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
-                        if(undoing) {
-                            for(const info of this.namedLayers.values()) {
+                        if (undoing) {
+                            // When undoing, clear any overlapping tiles in named layers
+                            for (const info of this.namedLayers.values()) {
                                 const b = info.bounds;
                                 if (placeX >= b.x && placeX < b.x + b.width && placeY >= b.y && placeY < b.y + b.height) {
                                     const localX = placeX - b.x;
@@ -1048,14 +1082,12 @@ export class TinyTownScene extends Phaser.Scene {
                             }
                         }
                         changed.push({ x: placeX, y: placeY });
-                    } else {
-                        // console.log(`   Skipping: New P${newPriority} < Current P${currentPriority} at (${placeX}, ${placeY})`);
                     }
                 } else {
                     if (currentTileIndex === -1) {
                         this.featureLayer?.putTileAt(newTileIndex, placeX, placeY);
-                        if(undoing) {
-                            for(const info of this.namedLayers.values()) {
+                        if (undoing) {
+                            for (const info of this.namedLayers.values()) {
                                 const b = info.bounds;
                                 if (placeX >= b.x && placeX < b.x + b.width && placeY >= b.y && placeY < b.y + b.height) {
                                     const localX = placeX - b.x;
@@ -1069,42 +1101,10 @@ export class TinyTownScene extends Phaser.Scene {
                 } 
             } 
         } 
-        console.log(this.featureLayer.layer.data)
         this.pruneBrokenTrees(changed);
 
-        // if (generatedData.name === 'ClearBox') {
-        //     // Compute the selection’s world‐bounds again:
-        //     const selStartX = startX;
-        //     const selStartY = startY;
-        //     const selEndX   = startX + gridWidth  - 1;
-        //     const selEndY   = startY + gridHeight - 1;
-
-        //     // For each named layer, check if our “clear rectangle” overlaps its bounds.
-        //     for (const info of this.namedLayers.values()) {
-        //         const b = info.bounds;
-        //         // Do the two rectangles overlap?
-        //         const overlapX1 = Math.max(selStartX, b.x);
-        //         const overlapY1 = Math.max(selStartY, b.y);
-        //         const overlapX2 = Math.min(selEndX,   b.x + b.width  - 1);
-        //         const overlapY2 = Math.min(selEndY,   b.y + b.height - 1);
-
-        //         if (overlapX1 <= overlapX2 && overlapY1 <= overlapY2) {
-        //             // They overlap: remove every tile in that intersection from the named layer
-        //             for (let wy = overlapY1; wy <= overlapY2; wy++) {
-        //                 for (let wx = overlapX1; wx <= overlapX2; wx++) {
-        //                 const newTileIndex = gridToPlace[wx]?.[wy];
-        //                     if(newTileIndex != -2) continue; // Skip if this is a clear box
-        //                     const localX = wx - b.x;
-        //                     const localY = wy - b.y;
-        //                     info.layer.removeTileAt(localX, localY);
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-
-        if(this.AUTOLAYER && generatedData.name !== 'Undo State' && generatedData.name !== 'ClearBox'){
-        console.groupCollapsed(`Auto-layering: ${generatedData.name}`);
+        if (this.AUTOLAYER && generatedData.name !== 'Undo State' && generatedData.name !== 'ClearBox') {
+            console.groupCollapsed(`Auto-layering: ${generatedData.name}`);
             // Compute selection bounds
             const w = gridWidth;
             const h = gridHeight;
@@ -1112,37 +1112,36 @@ export class TinyTownScene extends Phaser.Scene {
                 // Try to find an existing layer with identical bounds
                 let existingInfo: { layer: Phaser.Tilemaps.TilemapLayer; bounds: { x: number; y: number; width: number; height: number } } | undefined;
                 for (const info of this.namedLayers.values()) {
-                if (
-                    info.bounds.x === startX &&
-                    info.bounds.y === startY &&
-                    info.bounds.width === w &&
-                    info.bounds.height === h
-                ) {
-                    existingInfo = info;
-                    break;
-                }
+                    if (
+                        info.bounds.x === startX &&
+                        info.bounds.y === startY &&
+                        info.bounds.width === w &&
+                        info.bounds.height === h
+                    ) {
+                        existingInfo = info;
+                        break;
+                    }
                 }
 
                 if (existingInfo) {
-                // Move new tiles from featureLayer into the existing layer
-                changed.forEach(({ x, y }) => {
-                    const relX = x - existingInfo.bounds.x;
-                    const relY = y - existingInfo.bounds.y;
-                    const idx = this.featureLayer.getTileAt(x, y)?.index ?? -1;
-                    if (idx >= 0) {
-                        existingInfo!.layer.putTileAt(idx, relX, relY);
-                        this.featureLayer.removeTileAt(x, y);
-                    }
-                });
-                console.log()
+                    // Move new tiles from featureLayer into the existing layer
+                    changed.forEach(({ x, y }) => {
+                        const relX = x - existingInfo!.bounds.x;
+                        const relY = y - existingInfo!.bounds.y;
+                        const idx = this.featureLayer.getTileAt(x, y)?.index ?? -1;
+                        if (idx >= 0) {
+                            existingInfo!.layer.putTileAt(idx, relX, relY);
+                            this.featureLayer.removeTileAt(x, y);
+                        }
+                    });
                 } else {
                     // No existing layer: create a new auto-named layer with generated name
                     const autoName = await Tree.createLayerName(chatHistory, w, h);
                     this.nameSelection(autoName);
                 }
             }
+            console.groupEnd();
         }
-        console.groupEnd();
     }
 
     pruneBrokenTrees(changed?: { x: number; y: number }[]): void {
