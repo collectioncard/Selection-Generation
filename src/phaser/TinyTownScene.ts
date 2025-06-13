@@ -981,6 +981,14 @@ export class TinyTownScene extends Phaser.Scene {
                 if (acceptneg && newTileIndex === -2) {
                     this.featureLayer?.putTileAt(-1, placeX, placeY);
                     console.log("deleted a tile at", placeX, placeY);
+                    for (const info of this.namedLayers.values()) {
+                        const b = info.bounds;
+                        if (placeX >= b.x && placeX < b.x + b.width && placeY >= b.y && placeY < b.y + b.height) {
+                            const localX = placeX - b.x;
+                            const localY = placeY - b.y;
+                            info.layer?.putTileAt(-1, localX, localY); 
+                        }
+                    }
                     changed.push({ x: placeX, y: placeY });
                     continue;
                 }
@@ -1064,36 +1072,36 @@ export class TinyTownScene extends Phaser.Scene {
         console.log(this.featureLayer.layer.data)
         this.pruneBrokenTrees(changed);
 
-        if (generatedData.name === 'ClearBox') {
-            // Compute the selection’s world‐bounds again:
-            const selStartX = startX;
-            const selStartY = startY;
-            const selEndX   = startX + gridWidth  - 1;
-            const selEndY   = startY + gridHeight - 1;
+        // if (generatedData.name === 'ClearBox') {
+        //     // Compute the selection’s world‐bounds again:
+        //     const selStartX = startX;
+        //     const selStartY = startY;
+        //     const selEndX   = startX + gridWidth  - 1;
+        //     const selEndY   = startY + gridHeight - 1;
 
-            // For each named layer, check if our “clear rectangle” overlaps its bounds.
-            for (const info of this.namedLayers.values()) {
-                const b = info.bounds;
-                // Do the two rectangles overlap?
-                const overlapX1 = Math.max(selStartX, b.x);
-                const overlapY1 = Math.max(selStartY, b.y);
-                const overlapX2 = Math.min(selEndX,   b.x + b.width  - 1);
-                const overlapY2 = Math.min(selEndY,   b.y + b.height - 1);
+        //     // For each named layer, check if our “clear rectangle” overlaps its bounds.
+        //     for (const info of this.namedLayers.values()) {
+        //         const b = info.bounds;
+        //         // Do the two rectangles overlap?
+        //         const overlapX1 = Math.max(selStartX, b.x);
+        //         const overlapY1 = Math.max(selStartY, b.y);
+        //         const overlapX2 = Math.min(selEndX,   b.x + b.width  - 1);
+        //         const overlapY2 = Math.min(selEndY,   b.y + b.height - 1);
 
-                if (overlapX1 <= overlapX2 && overlapY1 <= overlapY2) {
-                    // They overlap: remove every tile in that intersection from the named layer
-                    for (let wy = overlapY1; wy <= overlapY2; wy++) {
-                        for (let wx = overlapX1; wx <= overlapX2; wx++) {
-                        const newTileIndex = gridToPlace[wx]?.[wy];
-                            if(newTileIndex != -2) continue; // Skip if this is a clear box
-                            const localX = wx - b.x;
-                            const localY = wy - b.y;
-                            info.layer.removeTileAt(localX, localY);
-                        }
-                    }
-                }
-            }
-        }
+        //         if (overlapX1 <= overlapX2 && overlapY1 <= overlapY2) {
+        //             // They overlap: remove every tile in that intersection from the named layer
+        //             for (let wy = overlapY1; wy <= overlapY2; wy++) {
+        //                 for (let wx = overlapX1; wx <= overlapX2; wx++) {
+        //                 const newTileIndex = gridToPlace[wx]?.[wy];
+        //                     if(newTileIndex != -2) continue; // Skip if this is a clear box
+        //                     const localX = wx - b.x;
+        //                     const localY = wy - b.y;
+        //                     info.layer.removeTileAt(localX, localY);
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
         if(this.AUTOLAYER && generatedData.name !== 'Undo State' && generatedData.name !== 'ClearBox'){
         console.groupCollapsed(`Auto-layering: ${generatedData.name}`);
