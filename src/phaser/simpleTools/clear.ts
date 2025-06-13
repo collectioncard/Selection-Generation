@@ -45,8 +45,8 @@ export class boxClear implements FeatureGenerator {
     let grid: number[][] = mapSection.grid;
     //Why are we using the args instead of just getting the selection dimensions?
     // IDK, but lets just force args 2 and 3 to not be bigger than the array
-    _args[2] = Math.min(_args[2], mapSection.width );
-    _args[3] = Math.min(_args[3], mapSection.height );
+    // _args[2] = Math.min(_args[2], mapSection.width );
+    // _args[3] = Math.min(_args[3], mapSection.height );
       
     
     console.log(grid)

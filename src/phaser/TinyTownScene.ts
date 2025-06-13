@@ -1084,6 +1084,8 @@ export class TinyTownScene extends Phaser.Scene {
                     // They overlap: remove every tile in that intersection from the named layer
                     for (let wy = overlapY1; wy <= overlapY2; wy++) {
                         for (let wx = overlapX1; wx <= overlapX2; wx++) {
+                        const newTileIndex = gridToPlace[wx]?.[wy];
+                            if(newTileIndex != -2) continue; // Skip if this is a clear box
                             const localX = wx - b.x;
                             const localY = wy - b.y;
                             info.layer.removeTileAt(localX, localY);
