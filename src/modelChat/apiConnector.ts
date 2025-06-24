@@ -166,11 +166,16 @@ export async function getChatResponse(chatMessageHistory: BaseMessage[]): Promis
       response = await llmWithTools.invoke(chatMessageHistory);
       console.log("Raw LLM response after tool calls:", response);
     }
-    return String(response.content) ?? "Error communicating with model :(";
+    
+    let resultContent = response.content;
+    if (typeof resultContent !== "string") {
+      console.log("Non-string AI response detected:", resultContent);
+      resultContent = JSON.stringify(resultContent);
+    }
+    return resultContent;
   }
   catch (error) {
     console.error("Error in LLM call: ", error);
     return "Error communicating with model :(";
   }
 }
-

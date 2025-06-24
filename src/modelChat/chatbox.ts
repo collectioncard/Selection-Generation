@@ -42,9 +42,16 @@ export function addChatMessage(chatMessage: BaseMessage): HTMLLIElement {
     //Add message to history
     chatHistory.push(chatMessage);
     
-    //display user message in chat box
+    // Prepare safe message content for display.
+    let displayContent = chatMessage.content;
+    if(typeof displayContent === "object") {
+        console.log("Detected object message in addChatMessage:", displayContent);
+        displayContent = JSON.stringify(displayContent);
+    }
+    
+    //display message in chat box
     const messageItem = document.createElement('li');
-    messageItem.innerHTML = `<strong>${chatMessage.getType().toString().toLocaleUpperCase()}:</strong> ${chatMessage.content}`;
+    messageItem.innerHTML = `<strong>${chatMessage.getType().toString().toLocaleUpperCase()}:</strong> ${displayContent}`;
     messageItem.style.marginBottom = '10px';
     chatHistoryList.appendChild(messageItem);
     return messageItem;
@@ -97,4 +104,3 @@ export function clearChatHistory(): void {
     chatHistory.length = 1; // Clear the chat history array
     console.log(chatHistory);
 }
-
