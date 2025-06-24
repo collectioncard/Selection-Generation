@@ -1314,8 +1314,10 @@ export class TinyTownScene extends Phaser.Scene {
         for (let y = 0; y < Math.min(mapData.length, this.CANVAS_HEIGHT); y++) {
             for (let x = 0; x < Math.min(mapData[y].length, this.CANVAS_WIDTH); x++) {
                 const tileId = mapData[y][x];
-                if (tileId !== -1) {
+                if (tileId > 3) { //Actual tiles
                     this.featureLayer.putTileAt(tileId, x, y);
+                } else if (tileId >= 0 && tileId < 3) { //Grass tiles
+                    this.grassLayer.putTileAt(tileId, x, y);
                 }
             }
         }
