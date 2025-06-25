@@ -2,10 +2,10 @@ import {
   completedSection,
   FeatureGenerator,
   generatorInput,
-} from "./GeneratorInterface";
+} from "../IGenerator.ts";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { TinyTownScene } from "../TinyTownScene";
+import { TinyTownScene } from "../../TinyTownScene.ts";
 
 const PADDING = 1; // minimum distance from the edge of the section
 

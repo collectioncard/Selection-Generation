@@ -2,10 +2,10 @@ import {
   completedSection,
   FeatureGenerator,
   generatorInput,
-} from "../featureGenerators/GeneratorInterface";
+} from "../IGenerator.ts";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { TinyTownScene } from "../TinyTownScene";
+import { TinyTownScene } from "../../TinyTownScene.ts";
 
 export class FullUndo implements FeatureGenerator {
   sceneGetter: () => TinyTownScene;

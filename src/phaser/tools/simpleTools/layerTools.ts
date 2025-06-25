@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { TinyTownScene } from "../TinyTownScene";
+import { TinyTownScene } from "../../TinyTownScene.ts";
 
 //Names the current rectangular selection as a new layer.
 export class NameLayerTool {

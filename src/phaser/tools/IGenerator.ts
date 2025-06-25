@@ -1,4 +1,4 @@
-import { TinyTownScene } from "../TinyTownScene";
+import { TinyTownScene } from "../TinyTownScene.ts";
 
 export interface mapCoords {
   x: number;

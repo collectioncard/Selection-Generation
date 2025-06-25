@@ -3,10 +3,7 @@ import { sendSystemMessage } from "../modelChat/chatbox";
 import { chatHistory } from "../modelChat/chatbox";
 
 import { Preload } from "./Preload";
-import {
-  completedSection,
-  generatorInput,
-} from "./featureGenerators/GeneratorInterface.ts";
+import { completedSection, generatorInput } from "./tools/IGenerator.ts";
 import { Tree } from "./TreeStructure.ts";
 import { WorldFactsDatabaseMaker } from "./WorldFactsDatabaseMaker.ts";
 

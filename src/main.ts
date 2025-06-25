@@ -3,23 +3,23 @@ import { createGame, TinyTownScene } from "./phaser/TinyTownScene.ts";
 import "./modelChat/chatbox.ts";
 // Register tools from the scene to the apiConnector
 import { initializeTools, registerTool } from "./modelChat/apiConnector.ts";
-import { DecorGenerator } from "./phaser/featureGenerators/decorGenerator.ts";
-import { ForestGenerator } from "./phaser/featureGenerators/forestGenerator.ts";
-import { HouseGenerator } from "./phaser/featureGenerators/houseGenerator.ts";
-import { FullFenceGenerator } from "./phaser/featureGenerators/fullFenceGenerator.ts";
-import { PartialFenceGenerator } from "./phaser/featureGenerators/partialFenceGenerator.ts";
-import { TilePlacer } from "./phaser/simpleTools/placeTile.ts";
-import { FullUndo } from "./phaser/simpleTools/undo.ts";
-import { boxPlacer } from "./phaser/simpleTools/placeBox.ts";
-import { boxClear } from "./phaser/simpleTools/clear.ts";
+import { DecorGenerator } from "./phaser/tools/featureGenerators/decorGenerator.ts";
+import { ForestGenerator } from "./phaser/tools/featureGenerators/forestGenerator.ts";
+import { HouseGenerator } from "./phaser/tools/featureGenerators/houseGenerator.ts";
+import { FullFenceGenerator } from "./phaser/tools/featureGenerators/fullFenceGenerator.ts";
+import { PartialFenceGenerator } from "./phaser/tools/featureGenerators/partialFenceGenerator.ts";
+import { TilePlacer } from "./phaser/tools/simpleTools/placeTile.ts";
+import { FullUndo } from "./phaser/tools/simpleTools/undo.ts";
+import { boxPlacer } from "./phaser/tools/simpleTools/placeBox.ts";
+import { boxClear } from "./phaser/tools/simpleTools/clear.ts";
 import {
   ListLayersTool,
   NameLayerTool,
-} from "./phaser/simpleTools/layerTools.ts";
+} from "./phaser/tools/simpleTools/layerTools.ts";
 // import { MoveLayerTool } from './phaser/simpleTools/layerTools.ts';
-import { SelectLayerTool } from "./phaser/simpleTools/layerTools.ts";
-import { RenameLayerTool } from "./phaser/simpleTools/layerTools.ts";
-import { DeleteLayerTool } from "./phaser/simpleTools/layerTools.ts";
+import { SelectLayerTool } from "./phaser/tools/simpleTools/layerTools.ts";
+import { RenameLayerTool } from "./phaser/tools/simpleTools/layerTools.ts";
+import { DeleteLayerTool } from "./phaser/tools/simpleTools/layerTools.ts";
 import { clearChatHistory } from "./modelChat/chatbox.ts";
 
 let gameInstance: Phaser.Game | null = null;
