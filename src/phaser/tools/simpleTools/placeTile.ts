@@ -24,10 +24,9 @@ export class TilePlacer implements FeatureGenerator {
       }
       let selection = scene.getSelection();
       try {
-        await scene.putFeatureAtSelection(
-          this.generate(selection, [x, y, tileID]),
-        );
-        return `placed ${tileID} at: ${[x, y]}`;
+        let result = this.generate(selection, { x, y, tileID });
+        await scene.putFeatureAtSelection(result);
+        return result.description;
       } catch (e) {
         console.error("putFeatureAtSelection failed:", e);
         return `Failed to place tile`;
@@ -40,20 +39,18 @@ export class TilePlacer implements FeatureGenerator {
         y: z.number(),
         tileID: z.string(),
       }),
-      description: "Adds a tile to the map.",
+      description:
+        "Adds a single tile to the map at the specified x,y coordinates. Used for precise placement of tiles.",
     },
   );
 
-  /** args is [x, y, tileID] */
   generate(mapSection: generatorInput, _args?: any): completedSection {
     let grid: number[][] = mapSection.grid;
-
-    const tileID = _args[2];
-    grid[_args[1]][_args[0]] = Number(tileID);
+    grid[_args.y][_args.x] = Number(_args.tileID);
 
     return {
       name: "PlaceTile",
-      description: "places a tile at the specified location",
+      description: `Placed tile ${_args.tileID} at (${_args.x}, ${_args.y})`,
       grid: grid,
       points_of_interest: new Map(),
     };
