@@ -7,7 +7,7 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { TinyTownScene } from "../../TinyTownScene.ts";
 
-const DECOR_CHANCE = 0.05;
+const DEFAULT_DENSITY: number = 0.05;
 
 const DECOR_TILES = {
   27: "orange tree",
@@ -30,7 +30,7 @@ export class DecorGenerator implements FeatureGenerator {
   }
 
   static DecorArgsSchema = z.object({
-    density: z.number().min(0).max(1), // unfortnatly the .default() parameter does not seem to be supported.
+    density: z.number().min(0).max(1), // unfortunately the .default() parameter does not seem to be supported.
     x: z.number().min(0).max(40).optional(),
     y: z.number().min(0).max(25).optional(),
     width: z.number().min(1).max(50).optional(),
@@ -39,8 +39,15 @@ export class DecorGenerator implements FeatureGenerator {
 
   toolCall = tool(
     async (args: z.infer<typeof DecorGenerator.DecorArgsSchema>) => {
-      //Just default the chance to 0.03 if not provided
-      const density = args.density ?? DECOR_CHANCE;
+      //override the default density with the one provided in args, if it exists.
+      let density = DEFAULT_DENSITY;
+      if (
+        args.density !== undefined &&
+        args.density >= 0 &&
+        args.density <= 1
+      ) {
+        density = args.density;
+      }
 
       console.log("Adding decor with args: ", args);
       let scene = this.sceneGetter();
@@ -50,8 +57,9 @@ export class DecorGenerator implements FeatureGenerator {
       }
       let selection = scene.getSelection();
       try {
-        await scene.putFeatureAtSelection(this.generate(selection, []));
-        return `Decor placed with chance ${density}`;
+        const result = this.generate(selection, { density });
+        await scene.putFeatureAtSelection(result);
+        return result.description;
       } catch (e) {
         console.error("putFeatureAtSelection failed:", e);
         return `Failed to place decor: ${e}`;
@@ -60,14 +68,15 @@ export class DecorGenerator implements FeatureGenerator {
     {
       name: "randomDecor",
       schema: DecorGenerator.DecorArgsSchema,
-      description:
-        'Adds decor to the map with a given density (default density of 0.03). Optional args: x, y, width, height. " +\n' +
-        '          "The type of decor is randomly selected from a predefined set of decor tiles and CANNOT be specified. If you want one type of decor, use the placeTile tool multiple times',
+      description: `Adds decor to the map with a specified density (default is 0.05). Optional args: x, y, width, height. The placed decor is randomly selected from the following tiles:  ${Object.keys(DECOR_TILES).join(", ")}. \n The type of decor cannot be specified, it is randomly chosen from the available decor tiles. If the user asks for specific decor, place it manually using the add tool`,
     },
   );
 
   generate(mapSection: generatorInput, _args?: any): completedSection {
     let grid: number[][] = mapSection.grid;
+
+    let decorCounts = new Map<string, number>();
+    let totalPlaced = 0;
 
     const width = _args?.width ?? mapSection.width;
     const height = _args?.height ?? mapSection.height;
@@ -75,18 +84,18 @@ export class DecorGenerator implements FeatureGenerator {
     const ystrt = _args?.y ?? 0;
     for (let y = ystrt; y < height + ystrt; y++) {
       for (let x = xstrt; x < width + xstrt; x++) {
-        if (Math.random() < DECOR_CHANCE) {
-          const decorTile = Phaser.Math.RND.pick(Object.keys(DECOR_TILES));
-          grid[y][x] = Number(decorTile);
+        if (Math.random() < _args.density) {
+          const decorKey = Phaser.Math.RND.pick(Object.keys(DECOR_TILES));
+          grid[y][x] = Number(decorKey);
+          decorCounts.set(decorKey, (decorCounts.get(decorKey) ?? 0) + 1);
+          totalPlaced++;
         }
       }
     }
 
     return {
       name: "randomDecor",
-      description:
-        'Adds decor to the map with a given chance (default chance of 0.03). Optional args: x, y, width, height. " +\n' +
-        '          "The type of decor is randomly selected from a predefined set of decor tiles and CANNOT be specified. If you want one type of decor, use the placeTile tool multiple times',
+      description: `Added ${totalPlaced} decor tiles. Placed tiles: ${JSON.stringify(Object.fromEntries(decorCounts))}`,
       grid: grid,
       points_of_interest: new Map(),
     };
