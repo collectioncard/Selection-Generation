@@ -3,7 +3,6 @@ import { sendSystemMessage } from "../modelChat/chatbox";
 import { chatHistory } from "../modelChat/chatbox";
 
 import { Preload } from "./Preload";
-import { HouseGenerator } from "./featureGenerators/houseGenerator";
 import {
   completedSection,
   generatorInput,
@@ -1162,7 +1161,7 @@ export class TinyTownScene extends Phaser.Scene {
             placeY < b.y + b.height
           ) {
             // Find the named layer that matches the active layer bounds
-            for (const [name, info] of this.namedLayers.entries()) {
+            for (const [, info] of this.namedLayers.entries()) {
               if (
                 info.bounds.x === b.x &&
                 info.bounds.y === b.y &&
@@ -1457,7 +1456,7 @@ export class TinyTownScene extends Phaser.Scene {
       }
     }
 
-    for (const [name, info] of this.namedLayers.entries()) {
+    for (const [, info] of this.namedLayers.entries()) {
       const { x: layerX, y: layerY, width, height } = info.bounds;
 
       for (let localY = 0; localY < height; localY++) {
@@ -1492,7 +1491,7 @@ export class TinyTownScene extends Phaser.Scene {
       });
     }
 
-    this.namedLayers.forEach((info, name) => {
+    this.namedLayers.forEach((info) => {
       info.layer.destroy(true);
     });
     this.namedLayers.clear();

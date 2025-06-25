@@ -34,15 +34,6 @@ gameInstance = await createGame(
   document.getElementById("map") as HTMLDivElement,
 );
 
-// Register tools here.
-// Migrated to making objects, so that generators have a reference to the scene.
-
-// const decorGenerator = new DecorGenerator(getScene)
-// registerTool(decorGenerator.toolCall);
-
-// const forestGenerator = new ForestGenerator(getScene)
-// registerTool(forestGenerator.toolCall);
-
 const generators = {
   decor: new DecorGenerator(getScene),
   forest: new ForestGenerator(getScene),

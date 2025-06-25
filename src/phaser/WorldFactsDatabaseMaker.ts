@@ -310,7 +310,6 @@ export class WorldFactsDatabaseMaker {
 
   getDescriptionParagraph(): string {
     let par: string = "";
-    let canvasHeight = this.mapHeight; // You need to define this based on your canvas
 
     for (let i = 0; i < this.structures.length; i++) {
       let struct = this.structures[i];

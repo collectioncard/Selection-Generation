@@ -11,50 +11,10 @@ const MIN_HOUSE_WIDTH = 3;
 const MIN_HOUSE_HEIGHT = 3;
 const BORDER_PADDING = 1;
 
-var lastHouseX = 0; // Global variable to store the house X position
-var lastHouseY = 0; // Global variable to store the house Y position
-var lastHouseWidth = 0; // Global variable to store the house X position
-var lastHouseHeight = 0; // Global variable to store the house Y position
-
-const HOUSE_TILES = {
-  // Roofs
-  48: "grey roof tile",
-  49: "grey roof tile",
-  50: "grey roof tile",
-  51: "grey roof chimney",
-  60: "grey roof tile",
-  61: "grey roof tile",
-  62: "grey roof tile",
-  63: "grey roof pointed",
-  52: "red roof left edge",
-  53: "red roof middle",
-  54: "red roof right edge",
-  55: "red roof chimney",
-  64: "red roof bottom left",
-  65: "red roof bottom middle",
-  66: "red roof bottom right",
-  67: "red roof pointed",
-
-  // Brown house
-  72: "brown house left wall",
-  73: "brown house middle wall",
-  74: "brown house entrance",
-  75: "brown house right wall",
-  84: "brown house window",
-  85: "brown house single door",
-  86: "brown house double door left",
-  87: "brown house double door right",
-
-  // Grey house
-  76: "grey house left wall",
-  77: "grey house middle wall",
-  78: "grey house entrance",
-  79: "grey house right wall",
-  88: "grey house window",
-  89: "grey house single door",
-  90: "grey house double door left",
-  91: "grey house double door right",
-};
+let lastHouseX = 0; // Global variable to store the house X position
+let lastHouseY = 0; // Global variable to store the house Y position
+let lastHouseWidth = 0; // Global variable to store the house X position
+let lastHouseHeight = 0; // Global variable to store the house Y position
 
 let points_of_interest = new Map();
 
